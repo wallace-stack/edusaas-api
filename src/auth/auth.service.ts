@@ -6,6 +6,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterSchoolDto } from './dto/register-school.dto';
 import { UserRole } from '../users/user.entity';
 import * as bcrypt from 'bcrypt';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -13,7 +14,8 @@ export class AuthService {
     private usersService: UsersService,
     private schoolsService: SchoolsService,
     private jwtService: JwtService,
-  ) {}
+    private mailService: MailService,
+  ) { }
 
   // Registra nova escola e cria o diretor como primeiro usuário
   async register(dto: RegisterSchoolDto) {
@@ -22,6 +24,7 @@ export class AuthService {
       cnpj: dto.cnpj,
       email: dto.schoolEmail,
       phone: dto.phone,
+
     });
 
     const director = await this.usersService.create({
@@ -31,6 +34,9 @@ export class AuthService {
       role: UserRole.DIRECTOR,
       schoolId: school.id,
     });
+
+    // Envia e-mail de boas-vindas
+    await this.mailService.sendWelcome(school.name, director.email, director.name);
 
     const token = this.generateToken(director, school.id);
 

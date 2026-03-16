@@ -21,10 +21,14 @@ import { Notification } from './notifications/notification.entity';
 import { CashFlow } from './finance/cashflow.entity';
 import { Tuition } from './finance/tuition.entity';
 import { MetricsModule } from './metrics/metrics.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
+    MailModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -52,4 +56,4 @@ import { MetricsModule } from './metrics/metrics.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

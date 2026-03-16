@@ -7,7 +7,7 @@ import { Grade } from '../grades/grade.entity';
 import { Attendance } from '../attendance/attendance.entity';
 import { Tuition } from '../finance/tuition.entity';
 import { Notification } from '../notifications/notification.entity';
-import { SchoolsModule } from 'src/schools/schools.module';
+import { SchoolsModule } from '../schools/schools.module';
 
 @Module({
   imports: [

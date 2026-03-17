@@ -16,6 +16,9 @@ import { MailService } from './mail.service';
         transport: {
           host: configService.get('MAIL_HOST', 'smtp.gmail.com'),
           port: +configService.get('MAIL_PORT', 587),
+          tls: {
+            rejectUnauthorized: false, 
+          },
           auth: {
             user: configService.get('MAIL_USER'),
             pass: configService.get('MAIL_PASS'),
@@ -32,4 +35,4 @@ import { MailService } from './mail.service';
   providers: [MailService, TrialScheduler],
   exports: [MailService],
 })
-export class MailModule {}
+export class MailModule { }

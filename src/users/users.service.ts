@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, QueryRunner } from 'typeorm';
 import { User, UserRole } from './user.entity';
 import * as bcrypt from 'bcrypt';
 
@@ -35,21 +35,28 @@ export class UsersService {
     return this.usersRepository.find({ where });
   }
 
-  // Cria um novo usuário com senha criptografada
+  // Cria usuário — uso geral (fora de transação)
   async create(data: Partial<User>): Promise<User> {
     try {
       const hashedPassword = await bcrypt.hash(data.password!, 10);
-      const user = this.usersRepository.create({
-        ...data,
-        password: hashedPassword,
-      });
+      const user = this.usersRepository.create({ ...data, password: hashedPassword });
       return await this.usersRepository.save(user);
     } catch (error: any) {
       if (error.code === 'ER_DUP_ENTRY') {
-        throw new ConflictException('Email já cadastrado');
+        throw new ConflictException('E-mail já cadastrado.');
       }
       throw error;
     }
+  }
+
+  // Cria usuário DENTRO de uma transação existente
+  async createWithRunner(data: Partial<User>, queryRunner: QueryRunner): Promise<User> {
+    const hashedPassword = await bcrypt.hash(data.password!, 10);
+    const user = queryRunner.manager.create(User, {
+      ...data,
+      password: hashedPassword,
+    });
+    return await queryRunner.manager.save(User, user);
   }
 
   // Remove um usuário (soft delete — apenas desativa)

@@ -1,8 +1,7 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { School, SchoolStatus } from './school.entity';
-import { CreateSchoolDto } from './dto/create-school.dto';
+import { Repository, QueryRunner } from 'typeorm';
+import { School } from './school.entity';
 
 @Injectable()
 export class SchoolsService {
@@ -11,54 +10,34 @@ export class SchoolsService {
     private schoolsRepository: Repository<School>,
   ) {}
 
-  // Cria uma nova escola e inicia o trial de 14 dias
-  async create(createSchoolDto: CreateSchoolDto): Promise<School> {
+  // Busca escola por CNPJ — usado para verificar duplicata antes do cadastro
+  async findByCnpj(cnpj: string): Promise<School | null> {
+    return this.schoolsRepository.findOne({
+      where: { cnpj: cnpj.replace(/\D/g, '') },
+    });
+  }
+
+  // Cria escola — uso geral (fora de transação)
+  async create(data: Partial<School>): Promise<School> {
     try {
-      const trialDays = 14;
-      const trialExpiresAt = new Date();
-      trialExpiresAt.setDate(trialExpiresAt.getDate() + trialDays);
-
-      const school = this.schoolsRepository.create({
-        ...createSchoolDto,
-        status: SchoolStatus.TRIAL,
-        trialExpiresAt,
-      });
-
+      const school = this.schoolsRepository.create(data);
       return await this.schoolsRepository.save(school);
     } catch (error: any) {
       if (error.code === 'ER_DUP_ENTRY') {
-        throw new ConflictException('CNPJ ou email já cadastrado');
+        throw new ConflictException('CNPJ já cadastrado.');
       }
       throw error;
     }
   }
 
+  // Cria escola DENTRO de uma transação existente
+  async createWithRunner(data: Partial<School>, queryRunner: QueryRunner): Promise<School> {
+    const school = queryRunner.manager.create(School, data);
+    return await queryRunner.manager.save(School, school);
+  }
+
   // Busca escola por ID
-  async findOne(id: number): Promise<School> {
-    const school = await this.schoolsRepository.findOne({ where: { id } });
-    if (!school) throw new NotFoundException('Escola não encontrada');
-    return school;
-  }
-
-  // Lista todas as escolas
-  async findAll(): Promise<School[]> {
-    return this.schoolsRepository.find();
-  }
-
-  // Verifica se o trial ainda é válido
-  async isTrialValid(schoolId: number): Promise<boolean> {
-    const school = await this.findOne(schoolId);
-    if (school.status !== SchoolStatus.TRIAL) return false;
-    return new Date() < new Date(school.trialExpiresAt);
-  }
-
-  // Verifica se a escola tem acesso (trial ou assinatura ativa)
-  async hasAccess(schoolId: number): Promise<boolean> {
-    const school = await this.findOne(schoolId);
-    if (school.status === SchoolStatus.ACTIVE) return true;
-    if (school.status === SchoolStatus.TRIAL) {
-      return new Date() < new Date(school.trialExpiresAt);
-    }
-    return false;
+  async findOne(id: number): Promise<School | null> {
+    return this.schoolsRepository.findOne({ where: { id } });
   }
 }

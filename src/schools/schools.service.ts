@@ -40,4 +40,23 @@ export class SchoolsService {
   async findOne(id: number): Promise<School | null> {
     return this.schoolsRepository.findOne({ where: { id } });
   }
+
+  // Verifica se a escola tem acesso ativo (trial ou plano pago)
+  // Usado pelo SchoolAccessGuard
+  async hasAccess(schoolId: number): Promise<boolean> {
+    const school = await this.schoolsRepository.findOne({ where: { id: schoolId } });
+    if (!school) return false;
+
+    // Verifica trial ativo
+    if ((school as any).trialEndsAt) {
+      const trialEnd = new Date((school as any).trialEndsAt);
+      if (trialEnd > new Date()) return true;
+    }
+
+    // Verifica plano ativo
+    if ((school as any).planActive) return true;
+
+    // Se não tiver campos de trial/plano ainda, libera acesso
+    return true;
+  }
 }

@@ -13,7 +13,8 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [
-      'https://edusaas-web-xi.vercel.app',
+      'https://edusaas-web-xi.vercel.app',  // URL correta de produção
+      'https://edusaas-web.vercel.app',      // URL alternativa
       'http://localhost:3000',
       'http://localhost:3001',
     ],

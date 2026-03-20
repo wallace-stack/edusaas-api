@@ -9,7 +9,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-  ) {}
+  ) { }
 
   async findByEmail(email: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { email }, relations: ['school'] });
@@ -66,8 +66,8 @@ export class UsersService {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await this.usersRepository.update(userId, {
       password: hashedPassword,
-      resetToken: null,
-      resetTokenExpiry: null,
+      resetToken: null as any,
+      resetTokenExpiry: null as any,
     });
   }
 

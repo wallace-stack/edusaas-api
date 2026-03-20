@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MailerService } from '@nestjs-modules/mailer';
 import { TrialScheduler } from './trial.scheduler';
 import { School } from '../schools/school.entity';
 import { User } from '../users/user.entity';
@@ -14,18 +13,16 @@ import { MailService } from './mail.service';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         transport: {
-          host: configService.get('MAIL_HOST', 'smtp.gmail.com'),
-          port: +configService.get('MAIL_PORT', 587),
-          tls: {
-            rejectUnauthorized: false, 
-          },
+          host: 'smtp.gmail.com',
+          port: 465,
+          secure: true, // SSL obrigatório na porta 465
           auth: {
             user: configService.get('MAIL_USER'),
             pass: configService.get('MAIL_PASS'),
           },
         },
         defaults: {
-          from: configService.get('MAIL_FROM', 'EduSaaS <noreply@edusaas.com>'),
+          from: configService.get('MAIL_FROM', 'EduSaaS <facilclasse@gmail.com>'),
         },
       }),
       inject: [ConfigService],
@@ -35,4 +32,4 @@ import { MailService } from './mail.service';
   providers: [MailService, TrialScheduler],
   exports: [MailService],
 })
-export class MailModule { }
+export class MailModule {}

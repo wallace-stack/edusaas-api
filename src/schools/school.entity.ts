@@ -13,6 +13,16 @@ export enum SchoolStatus {
 }
 
 /**
+ * Enum que reflete o status do plano/pagamento via Asaas.
+ */
+export enum PlanStatus {
+  TRIAL = 'trial',
+  ACTIVE = 'active',
+  OVERDUE = 'overdue',
+  CANCELLED = 'cancelled',
+}
+
+/**
  * Enum que define os planos disponíveis para a escola.
  * Pode ser usado para limitar funcionalidades.
  */
@@ -113,6 +123,26 @@ export class School {
    */
   @Column({ default: true })
   isActive!: boolean;
+
+  /** ID do cliente criado no Asaas. */
+  @Column({ nullable: true })
+  asaasCustomerId!: string;
+
+  /** ID da assinatura recorrente no Asaas. */
+  @Column({ nullable: true })
+  asaasSubscriptionId!: string;
+
+  /** Status do plano com base nos pagamentos do Asaas. */
+  @Column({ type: 'enum', enum: PlanStatus, default: PlanStatus.TRIAL })
+  planStatus!: PlanStatus;
+
+  /** Data de término do trial (createdAt + 14 dias). */
+  @Column({ type: 'datetime', nullable: true })
+  trialEndsAt!: Date;
+
+  /** Data em que o plano pago foi ativado pela primeira vez. */
+  @Column({ type: 'datetime', nullable: true })
+  planActivatedAt!: Date;
 
   /**
    * Data automática de criação do registro.

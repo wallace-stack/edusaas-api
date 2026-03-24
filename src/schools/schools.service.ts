@@ -1,7 +1,7 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
-import { School } from './school.entity';
+import { School, PlanStatus } from './school.entity';
 
 @Injectable()
 export class SchoolsService {
@@ -47,16 +47,31 @@ export class SchoolsService {
     const school = await this.schoolsRepository.findOne({ where: { id: schoolId } });
     if (!school) return false;
 
-    // Verifica trial ativo
-    if ((school as any).trialEndsAt) {
-      const trialEnd = new Date((school as any).trialEndsAt);
-      if (trialEnd > new Date()) return true;
+    if (school.planStatus === PlanStatus.ACTIVE) return true;
+
+    if (school.planStatus === PlanStatus.TRIAL && school.trialEndsAt) {
+      return school.trialEndsAt > new Date();
     }
 
-    // Verifica plano ativo
-    if ((school as any).planActive) return true;
+    return false;
+  }
 
-    // Se não tiver campos de trial/plano ainda, libera acesso
-    return true;
+  // Atualiza asaasCustomerId e trialEndsAt após criar cliente no Asaas
+  async updateAsaasCustomer(schoolId: number, customerId: string, trialEndsAt: Date): Promise<void> {
+    await this.schoolsRepository.update(schoolId, { asaasCustomerId: customerId, trialEndsAt });
+  }
+
+  // Atualiza planStatus a partir de um subscriptionId — chamado pelo webhook
+  async updatePlanBySubscription(subscriptionId: string, planStatus: PlanStatus): Promise<void> {
+    const update: Partial<School> = { planStatus };
+    if (planStatus === PlanStatus.ACTIVE) {
+      update.planActivatedAt = new Date();
+    }
+    await this.schoolsRepository.update({ asaasSubscriptionId: subscriptionId }, update);
+  }
+
+  // Atualiza campos genéricos de uma escola
+  async update(schoolId: number, data: Partial<School>): Promise<void> {
+    await this.schoolsRepository.update(schoolId, data);
   }
 }

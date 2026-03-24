@@ -3,10 +3,12 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { SchoolsService } from '../schools/schools.service';
+import { AsaasService } from '../asaas/asaas.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterSchoolDto } from './dto/register-school.dto';
 import { UserRole } from '../users/user.entity';
@@ -16,9 +18,12 @@ import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private usersService: UsersService,
     private schoolsService: SchoolsService,
+    private asaasService: AsaasService,
     private jwtService: JwtService,
     private mailService: MailService,
   ) {}
@@ -41,6 +46,20 @@ export class AuthService {
       role: UserRole.DIRECTOR,
       schoolId: school.id,
     });
+
+    // Cria cliente no Asaas e define trialEndsAt — falha silenciosa para não bloquear cadastro
+    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    try {
+      const customerId = await this.asaasService.createCustomer(
+        school.name,
+        school.email,
+        dto.cnpj,
+      );
+      await this.schoolsService.updateAsaasCustomer(school.id, customerId, trialEndsAt);
+    } catch (e) {
+      this.logger.error('[Asaas] Erro ao criar cliente, trial definido sem customerId:', e);
+      await this.schoolsService.update(school.id, { trialEndsAt });
+    }
 
     try {
       await this.mailService.sendWelcome(school.name, director.email, director.name);

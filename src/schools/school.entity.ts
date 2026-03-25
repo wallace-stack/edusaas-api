@@ -1,9 +1,10 @@
 // Importa decorators do TypeORM usados para definir entidades e colunas no banco
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { SchoolPlan } from '../plans/plan-limits';
 
 /**
  * Enum que define o status da escola dentro do sistema SaaS.
- * Isso ajuda a controlar acesso dependendo da assinatura.
+ * Mantido para compatibilidade com dados legados — não usar em código novo.
  */
 export enum SchoolStatus {
   TRIAL = 'trial',        // escola está no período de teste
@@ -22,15 +23,8 @@ export enum PlanStatus {
   CANCELLED = 'cancelled',
 }
 
-/**
- * Enum que define os planos disponíveis para a escola.
- * Pode ser usado para limitar funcionalidades.
- */
-export enum SchoolPlan {
-  BASIC = 'basic',            // plano básico
-  PROFESSIONAL = 'professional', // plano intermediário
-  ENTERPRISE = 'enterprise',  // plano completo
-}
+// Re-export SchoolPlan so existing imports from this file still work
+export { SchoolPlan };
 
 /**
  * Entity representa a tabela "school" no banco de dados.
@@ -81,38 +75,38 @@ export class School {
   address!: string;
 
   /**
-   * Status atual da escola dentro do sistema.
-   * Usa enum para garantir valores controlados.
-   * Default = TRIAL.
+   * Status legado da escola.
+   * Mantido para não quebrar dados existentes — não usar em código novo.
+   * Use planStatus para lógica de acesso.
    */
   @Column({
     type: 'enum',
     enum: SchoolStatus,
     default: SchoolStatus.TRIAL,
+    nullable: true,
   })
   status!: SchoolStatus;
 
   /**
-   * Plano contratado pela escola.
-   * Default definido como PROFESSIONAL.
+   * Plano contratado pela escola (free/pro/premium).
    */
   @Column({
     type: 'enum',
     enum: SchoolPlan,
-    default: SchoolPlan.PROFESSIONAL,
+    default: SchoolPlan.FREE,
   })
   plan!: SchoolPlan;
 
   /**
-   * Data de expiração do período de teste.
-   * Usado para controlar quando o trial termina.
+   * Data de expiração do período de teste (legado).
+   * Mantido para não quebrar dados existentes — use trialEndsAt.
    */
   @Column({ type: 'timestamp', nullable: true })
   trialExpiresAt!: Date;
 
   /**
-   * Data de expiração da assinatura paga.
-   * Se passar dessa data, o sistema pode bloquear acesso.
+   * Data de expiração da assinatura paga (legado).
+   * Mantido para não quebrar dados existentes.
    */
   @Column({ type: 'timestamp', nullable: true })
   subscriptionExpiresAt!: Date;

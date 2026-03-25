@@ -2,6 +2,7 @@ import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
 import { School, PlanStatus } from './school.entity';
+import { SchoolPlan } from '../plans/plan-limits';
 
 @Injectable()
 export class SchoolsService {
@@ -76,5 +77,10 @@ export class SchoolsService {
   // Atualiza campos genéricos de uma escola
   async update(schoolId: number, data: Partial<School>): Promise<void> {
     await this.schoolsRepository.update(schoolId, data);
+  }
+
+  // Atualiza o plano da escola a partir de um subscriptionId — chamado pelo webhook após confirmação de pagamento
+  async updateSchoolPlan(subscriptionId: string, plan: SchoolPlan): Promise<void> {
+    await this.schoolsRepository.update({ asaasSubscriptionId: subscriptionId }, { plan });
   }
 }

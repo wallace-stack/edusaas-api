@@ -35,8 +35,7 @@ export class TrialScheduler {
 
       if (!director) continue;
 
-      // Usa trialEndsAt (campo atual) com fallback para trialExpiresAt (legado)
-      const trialEndsDate = school.trialEndsAt ?? school.trialExpiresAt;
+      const trialEndsDate = school.trialEndsAt;
       if (!trialEndsDate) continue;
 
       const trialExpires = new Date(trialEndsDate);

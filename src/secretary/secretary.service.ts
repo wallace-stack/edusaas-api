@@ -15,6 +15,7 @@ import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { SecretaryCreateTuitionDto, SecretaryPayTuitionDto } from './dto/create-tuition.dto';
 import { CreateClassDto } from '../classes/dto/create-class.dto';
 import { PlanLimitsService } from '../plans/plan-limits.service';
+import { EnrollmentService } from '../enrollment/enrollment.service';
 
 @Injectable()
 export class SecretaryService {
@@ -29,6 +30,7 @@ export class SecretaryService {
     private classesService: ClassesService,
     private financeService: FinanceService,
     private planLimitsService: PlanLimitsService,
+    private enrollmentService: EnrollmentService,
   ) {}
 
   // Dashboard da secretária — visão operacional
@@ -113,6 +115,10 @@ export class SecretaryService {
       role: UserRole.STUDENT,
       schoolId,
     });
+
+    if (dto.classId) {
+      await this.enrollmentService.enroll(user.id, dto.classId, schoolId);
+    }
 
     const { password: _, ...safe } = user as any;
     return safe;

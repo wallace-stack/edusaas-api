@@ -10,6 +10,7 @@ import { ClassesModule } from '../classes/classes.module';
 import { FinanceModule } from '../finance/finance.module';
 import { SchoolsModule } from '../schools/schools.module';
 import { PlansModule } from '../plans/plans.module';
+import { EnrollmentModule } from '../enrollment/enrollment.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PlansModule } from '../plans/plans.module';
     FinanceModule,
     SchoolsModule,
     PlansModule,
+    EnrollmentModule,
   ],
   controllers: [SecretaryController],
   providers: [SecretaryService],

@@ -14,7 +14,7 @@ export class AsaasService {
     private httpService: HttpService,
     private configService: ConfigService,
   ) {
-    this.baseUrl = 'https://sandbox.asaas.com/api/v3';
+    this.baseUrl = this.configService.get<string>('ASAAS_API_URL', 'https://sandbox.asaas.com/api/v3');
     this.apiKey = this.configService.get<string>('ASAAS_API_KEY', '');
   }
 

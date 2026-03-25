@@ -24,6 +24,9 @@ export class SchoolsService {
       return await this.schoolsRepository.save(school);
     } catch (error: any) {
       if (error.code === 'ER_DUP_ENTRY') {
+        if (error.sqlMessage?.includes('email')) {
+          throw new ConflictException('E-mail da escola já cadastrado.');
+        }
         throw new ConflictException('CNPJ já cadastrado.');
       }
       throw error;

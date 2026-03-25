@@ -9,6 +9,7 @@ import { UsersModule } from '../users/users.module';
 import { ClassesModule } from '../classes/classes.module';
 import { FinanceModule } from '../finance/finance.module';
 import { SchoolsModule } from '../schools/schools.module';
+import { PlansModule } from '../plans/plans.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { SchoolsModule } from '../schools/schools.module';
     ClassesModule,
     FinanceModule,
     SchoolsModule,
+    PlansModule,
   ],
   controllers: [SecretaryController],
   providers: [SecretaryService],

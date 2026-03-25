@@ -14,6 +14,7 @@ import { ClassesService } from '../classes/classes.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { SecretaryCreateTuitionDto, SecretaryPayTuitionDto } from './dto/create-tuition.dto';
 import { CreateClassDto } from '../classes/dto/create-class.dto';
+import { PlanLimitsService } from '../plans/plan-limits.service';
 
 @Injectable()
 export class SecretaryService {
@@ -27,6 +28,7 @@ export class SecretaryService {
     private usersService: UsersService,
     private classesService: ClassesService,
     private financeService: FinanceService,
+    private planLimitsService: PlanLimitsService,
   ) {}
 
   // Dashboard da secretária — visão operacional
@@ -95,6 +97,13 @@ export class SecretaryService {
 
   // Matricula novo aluno
   async enrollStudent(dto: CreateEnrollmentDto, schoolId: number): Promise<any> {
+    const { allowed, current, limit } = await this.planLimitsService.canAddStudent(schoolId);
+    if (!allowed) {
+      throw new ForbiddenException(
+        `Limite de alunos do plano atingido (${current}/${limit}). Faça upgrade do plano para matricular mais alunos.`,
+      );
+    }
+
     const user = await this.usersService.create({
       name: dto.name,
       email: dto.email,

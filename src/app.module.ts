@@ -27,6 +27,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { MailModule } from './mail/mail.module';
 import { AsaasModule } from './asaas/asaas.module';
 import { SecretaryModule } from './secretary/secretary.module';
+import { FeedModule } from './feed/feed.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { FeedPost } from './feed/feed-post.entity';
+import { PlansModule } from './plans/plans.module';
 
 @Module({
   imports: [
@@ -43,7 +47,7 @@ import { SecretaryModule } from './secretary/secretary.module';
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
-        entities: [School, User, SchoolClass, SchoolSubject, Grade, Attendance, Notification, Tuition, CashFlow],
+        entities: [School, User, SchoolClass, SchoolSubject, Grade, Attendance, Notification, Tuition, CashFlow, FeedPost],
         synchronize: true,
       }),
       inject: [ConfigService],
@@ -59,6 +63,9 @@ import { SecretaryModule } from './secretary/secretary.module';
     MetricsModule,
     AsaasModule,
     SecretaryModule,
+    CloudinaryModule,
+    FeedModule,
+    PlansModule,
   ],
   controllers: [AppController],
   providers: [

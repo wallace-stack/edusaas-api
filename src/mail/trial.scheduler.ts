@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual } from 'typeorm';
-import { School, SchoolStatus } from '../schools/school.entity';
+import { Repository } from 'typeorm';
+import { School, PlanStatus } from '../schools/school.entity';
 import { User, UserRole } from '../users/user.entity';
 import { MailService } from './mail.service';
 
@@ -25,7 +25,7 @@ export class TrialScheduler {
     const today = new Date();
 
     const schools = await this.schoolsRepository.find({
-      where: { status: SchoolStatus.TRIAL },
+      where: { planStatus: PlanStatus.TRIAL },
     });
 
     for (const school of schools) {
@@ -35,7 +35,11 @@ export class TrialScheduler {
 
       if (!director) continue;
 
-      const trialExpires = new Date(school.trialExpiresAt);
+      // Usa trialEndsAt (campo atual) com fallback para trialExpiresAt (legado)
+      const trialEndsDate = school.trialEndsAt ?? school.trialExpiresAt;
+      if (!trialEndsDate) continue;
+
+      const trialExpires = new Date(trialEndsDate);
       const daysLeft = Math.ceil((trialExpires.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
       // 3 dias antes
@@ -51,16 +55,16 @@ export class TrialScheduler {
       }
 
       // Trial expirado
-      if (daysLeft <= 0 && school.status === SchoolStatus.TRIAL) {
-        school.status = SchoolStatus.EXPIRED;
+      if (daysLeft <= 0 && school.planStatus === PlanStatus.TRIAL) {
+        school.planStatus = PlanStatus.OVERDUE;
         await this.schoolsRepository.save(school);
         await this.mailService.sendTrialExpired(school.name, director.email, director.name);
         this.logger.log(`Trial expirado: ${school.name}`);
       }
 
-      // Dia 21 — reativação
+      // Dia 21 — reativação (7 dias após expiração)
       const daysSinceExpired = Math.abs(daysLeft);
-      if (daysSinceExpired === 7 && school.status === SchoolStatus.EXPIRED) {
+      if (daysSinceExpired === 7 && school.planStatus === PlanStatus.OVERDUE) {
         await this.mailService.sendReactivation(school.name, director.email, director.name);
         this.logger.log(`E-mail reativacao: ${school.name}`);
       }

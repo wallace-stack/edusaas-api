@@ -18,4 +18,8 @@ export class CreateNotificationDto {
   @IsOptional()
   @IsNumber()
   targetUserId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  classId?: number;
 }

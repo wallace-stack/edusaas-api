@@ -13,9 +13,9 @@ import { UserRole } from '../users/user.entity';
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
-  // Coordenador e diretor criam notificações
+  // Diretor, coordenador e secretária criam notificações
   @Post()
-  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
   create(@Body() dto: CreateNotificationDto, @CurrentUser() user: any) {
     return this.notificationsService.create(dto, user.schoolId, user.userId);
   }

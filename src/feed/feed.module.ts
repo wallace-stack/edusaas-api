@@ -6,6 +6,7 @@ import { FeedPost } from './feed-post.entity';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { ClassesModule } from '../classes/classes.module';
 import { PlansModule } from '../plans/plans.module';
+import { EnrollmentModule } from '../enrollment/enrollment.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { PlansModule } from '../plans/plans.module';
     CloudinaryModule,
     ClassesModule,
     PlansModule,
+    EnrollmentModule,
   ],
   controllers: [FeedController],
   providers: [FeedService],

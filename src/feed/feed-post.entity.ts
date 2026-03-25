@@ -12,59 +12,57 @@ import { User } from '../users/user.entity';
 import { SchoolClass } from '../classes/class.entity';
 
 export enum FeedPostType {
-  NEWS = 'news',
-  EVENT = 'event',
-  UPDATE = 'update',
+  GLOBAL = 'global',
   CLASS_MESSAGE = 'class_message',
 }
 
 @Entity('feed_posts')
 export class FeedPost {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 200 })
-  title: string;
+  title!: string;
 
   @Column({ type: 'text' })
-  content: string;
+  content!: string;
 
-  @Column({ type: 'enum', enum: FeedPostType, default: FeedPostType.NEWS })
-  type: FeedPostType;
+  @Column({ type: 'enum', enum: FeedPostType, default: FeedPostType.GLOBAL })
+  type!: FeedPostType;
 
   @Column({ type: 'simple-array', nullable: true })
-  images: string[];
+  images!: string[];
 
   @Column({ default: false })
-  pinned: boolean;
+  pinned!: boolean;
 
   @Column({ default: true })
-  active: boolean;
+  active!: boolean;
 
   @Column()
-  schoolId: number;
+  schoolId!: number;
 
   @Column()
-  authorId: number;
+  authorId!: number;
 
   @Column({ nullable: true })
-  classId: number;
+  classId!: number;
 
   @ManyToOne(() => School, { eager: false })
   @JoinColumn({ name: 'school_id' })
-  school: School;
+  school!: School;
 
   @ManyToOne(() => User, { eager: false })
   @JoinColumn({ name: 'author_id' })
-  author: User;
+  author!: User;
 
   @ManyToOne(() => SchoolClass, { eager: false, nullable: true })
   @JoinColumn({ name: 'class_id' })
-  class: SchoolClass;
+  class!: SchoolClass;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

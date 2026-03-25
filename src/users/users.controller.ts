@@ -13,9 +13,9 @@ import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // Apenas coordenador e diretor podem listar usuários
+  // Apenas coordenador, secretária e diretor podem listar usuários
   @Get()
-  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
   findAll(
     @CurrentUser() user: any,
     @Query('role') role?: UserRole,

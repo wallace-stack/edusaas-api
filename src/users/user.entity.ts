@@ -4,6 +4,7 @@ import { School } from '../schools/school.entity';
 export enum UserRole {
   DIRECTOR = 'director',
   COORDINATOR = 'coordinator',
+  SECRETARY = 'secretary',
   TEACHER = 'teacher',
   STUDENT = 'student',
 }

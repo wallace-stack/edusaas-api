@@ -26,6 +26,7 @@ import { MetricsModule } from './metrics/metrics.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MailModule } from './mail/mail.module';
 import { AsaasModule } from './asaas/asaas.module';
+import { SecretaryModule } from './secretary/secretary.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { AsaasModule } from './asaas/asaas.module';
     ClassesModule,
     MetricsModule,
     AsaasModule,
+    SecretaryModule,
   ],
   controllers: [AppController],
   providers: [

@@ -16,14 +16,14 @@ export class FinanceController {
 
   // Cria mensalidade
   @Post('tuitions')
-  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
   createTuition(@Body() dto: CreateTuitionDto, @CurrentUser() user: any) {
     return this.financeService.createTuition(dto, user.schoolId);
   }
 
   // Registra pagamento
   @Patch('tuitions/:id/pay')
-  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
   payTuition(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: PayTuitionDto,
@@ -34,7 +34,7 @@ export class FinanceController {
 
   // Mensalidades de um aluno
   @Get('tuitions/student/:studentId')
-  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
   findTuitionsByStudent(
     @Param('studentId', ParseIntPipe) studentId: number,
     @CurrentUser() user: any,
@@ -51,7 +51,7 @@ export class FinanceController {
 
   // Lista inadimplentes
   @Get('defaulters')
-  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
   findDefaulters(@CurrentUser() user: any) {
     return this.financeService.findDefaulters(user.schoolId);
   }
@@ -65,7 +65,7 @@ export class FinanceController {
 
   // Relatório financeiro mensal
   @Get('report')
-  @Roles(UserRole.DIRECTOR)
+  @Roles(UserRole.DIRECTOR, UserRole.SECRETARY)
   getReport(
     @Query('month') month: number,
     @Query('year') year: number,

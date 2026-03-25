@@ -15,7 +15,7 @@ export class ClassesController {
   constructor(private readonly classesService: ClassesService) {}
 
   @Post()
-  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
   createClass(@Body() dto: CreateClassDto, @CurrentUser() user: any) {
     return this.classesService.createClass(dto, user.schoolId);
   }
@@ -34,7 +34,7 @@ export class ClassesController {
   }
 
   @Post('subjects')
-  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
   createSubject(@Body() dto: CreateSubjectDto, @CurrentUser() user: any) {
     return this.classesService.createSubject(dto, user.schoolId);
   }

@@ -26,7 +26,7 @@ export class FeedPost {
   @Column({ length: 200 })
   title: string;
 
-  @Column({ type: 'text', length: 5000 })
+  @Column({ type: 'text' })
   content: string;
 
   @Column({ type: 'enum', enum: FeedPostType, default: FeedPostType.NEWS })

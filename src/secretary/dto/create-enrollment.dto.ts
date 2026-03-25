@@ -6,6 +6,7 @@ import {
   MinLength,
   Matches,
   IsDateString,
+  IsNumber,
 } from 'class-validator';
 
 export class CreateEnrollmentDto {
@@ -35,4 +36,8 @@ export class CreateEnrollmentDto {
   @IsOptional()
   @IsDateString()
   birthDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  classId?: number;
 }

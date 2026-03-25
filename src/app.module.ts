@@ -31,6 +31,8 @@ import { FeedModule } from './feed/feed.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { FeedPost } from './feed/feed-post.entity';
 import { PlansModule } from './plans/plans.module';
+import { EnrollmentModule } from './enrollment/enrollment.module';
+import { Enrollment } from './enrollment/enrollment.entity';
 
 @Module({
   imports: [
@@ -47,7 +49,7 @@ import { PlansModule } from './plans/plans.module';
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
-        entities: [School, User, SchoolClass, SchoolSubject, Grade, Attendance, Notification, Tuition, CashFlow, FeedPost],
+        entities: [School, User, SchoolClass, SchoolSubject, Grade, Attendance, Notification, Tuition, CashFlow, FeedPost, Enrollment],
         synchronize: true,
       }),
       inject: [ConfigService],
@@ -66,6 +68,7 @@ import { PlansModule } from './plans/plans.module';
     CloudinaryModule,
     FeedModule,
     PlansModule,
+    EnrollmentModule,
   ],
   controllers: [AppController],
   providers: [

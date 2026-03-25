@@ -12,6 +12,8 @@ import { AsaasService } from '../asaas/asaas.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterSchoolDto } from './dto/register-school.dto';
 import { UserRole } from '../users/user.entity';
+import { SchoolPlan } from '../plans/plan-limits';
+import { PlanStatus } from '../schools/school.entity';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
@@ -37,6 +39,8 @@ export class AuthService {
       cnpj: dto.cnpj.replace(/\D/g, ''),
       email: dto.schoolEmail,
       phone: dto.phone,
+      plan: SchoolPlan.FREE,
+      planStatus: PlanStatus.TRIAL,
     });
 
     const director = await this.usersService.create({

@@ -1,17 +1,13 @@
-import { IsString, IsNumber, IsOptional } from 'class-validator';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateSubjectDto {
   @IsString()
-  name!: string;
+  name: string;
 
   @IsNumber()
-  classId!: number;
+  teacherId: number;
 
+  @IsNumber()
   @IsOptional()
-  @IsNumber()
-  teacherId?: number;
-
-  @IsOptional()
-  @IsNumber()
-  workload?: number;
+  classId?: number;
 }

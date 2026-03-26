@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ClassesService } from './classes.service';
 import { CreateClassDto } from './dto/create-class.dto';
@@ -23,6 +23,11 @@ export class ClassesController {
   @Get()
   findAllClasses(@CurrentUser() user: any) {
     return this.classesService.findAllClasses(user.schoolId);
+  }
+
+  @Get('my')
+  getMyClasses(@Request() req) {
+    return this.classesService.findByTeacher(req.user.userId, req.user.schoolId);
   }
 
   @Get(':id')

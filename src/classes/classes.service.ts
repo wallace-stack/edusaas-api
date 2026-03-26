@@ -35,6 +35,15 @@ export class ClassesService {
     return this.SchoolSubjectsRepository.save(subject);
   }
 
+  async findByTeacher(teacherId: number, schoolId: number): Promise<SchoolClass[]> {
+    return this.classesRepository
+      .createQueryBuilder('class')
+      .innerJoin('class.subjects', 'subject')
+      .where('subject.teacherId = :teacherId', { teacherId })
+      .andWhere('class.schoolId = :schoolId', { schoolId })
+      .getMany();
+  }
+
   async findSubjectsByClass(classId: number, schoolId: number): Promise<SchoolSubject[]> {
     return this.SchoolSubjectsRepository.find({
       where: { classId, schoolId, isActive: true },

@@ -39,9 +39,12 @@ export class EnrollmentController {
 
   // Ver alunos de uma turma — admin roles
   @Get('class/:classId')
-  @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY, UserRole.TEACHER)
-  getClassStudents(@Param('classId', ParseIntPipe) classId: number) {
-    return this.enrollmentService.getClassStudents(classId);
+  @Roles(UserRole.TEACHER, UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
+  getClassStudents(
+    @Param('classId', ParseIntPipe) classId: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.enrollmentService.getClassStudents(classId, user.schoolId);
   }
 
   // Transferir matrícula para outra turma — secretary, coordinator, director

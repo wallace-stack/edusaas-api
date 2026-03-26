@@ -44,11 +44,15 @@ export class EnrollmentService {
     });
   }
 
-  async getClassStudents(classId: number): Promise<Enrollment[]> {
+  async getClassStudents(classId: number, schoolId: number): Promise<Enrollment[]> {
     const currentYear = new Date().getFullYear();
     return this.enrollmentRepository.find({
-      where: { classId, year: currentYear, status: EnrollmentStatus.ACTIVE },
+      where: { classId, schoolId, year: currentYear, status: EnrollmentStatus.ACTIVE },
       relations: ['student'],
+      select: {
+        id: true,
+        student: { id: true, name: true },
+      },
     });
   }
 

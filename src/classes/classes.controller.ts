@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ClassesService } from './classes.service';
 import { CreateClassDto } from './dto/create-class.dto';
@@ -38,10 +38,14 @@ export class ClassesController {
     return this.classesService.findOneClass(id, user.schoolId);
   }
 
-  @Post('subjects')
+  @Post(':id/subjects')
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
-  createSubject(@Body() dto: CreateSubjectDto, @CurrentUser() user: any) {
-    return this.classesService.createSubject(dto, user.schoolId);
+  createSubject(
+    @Param('id', ParseIntPipe) classId: number,
+    @Body() dto: CreateSubjectDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.classesService.createSubject({ ...dto, classId }, user.schoolId);
   }
 
   @Get(':id/subjects')
@@ -50,5 +54,15 @@ export class ClassesController {
     @CurrentUser() user: any,
   ) {
     return this.classesService.findSubjectsByClass(id, user.schoolId);
+  }
+
+  @Delete(':id/subjects/:subjectId')
+  @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
+  removeSubject(
+    @Param('id', ParseIntPipe) classId: number,
+    @Param('subjectId', ParseIntPipe) subjectId: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.classesService.removeSubject(classId, subjectId, user.schoolId);
   }
 }

@@ -50,4 +50,13 @@ export class ClassesService {
       relations: ['teacher'],
     });
   }
+
+  async removeSubject(classId: number, subjectId: number, schoolId: number): Promise<{ message: string }> {
+    const subject = await this.SchoolSubjectsRepository.findOne({
+      where: { id: subjectId, classId, schoolId },
+    });
+    if (!subject) throw new NotFoundException('Disciplina não encontrada.');
+    await this.SchoolSubjectsRepository.remove(subject);
+    return { message: 'Disciplina removida com sucesso.' };
+  }
 }

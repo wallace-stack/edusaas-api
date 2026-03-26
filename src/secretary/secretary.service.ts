@@ -166,6 +166,15 @@ export class SecretaryService {
     );
   }
 
+  // Lista apenas professores
+  async getTeachers(schoolId: number): Promise<any[]> {
+    return this.usersRepository.find({
+      where: { schoolId, role: UserRole.TEACHER, isActive: true },
+      select: ['id', 'name', 'email'],
+      order: { name: 'ASC' },
+    });
+  }
+
   // Lista professores e coordenadores
   async listStaff(schoolId: number): Promise<any[]> {
     const staff = await this.usersRepository.find({

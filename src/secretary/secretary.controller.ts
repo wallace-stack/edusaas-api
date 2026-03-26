@@ -89,6 +89,12 @@ export class SecretaryController {
     return this.secretaryService.payTuition(dto, user.schoolId);
   }
 
+  // Listar apenas professores
+  @Get('teachers')
+  getTeachers(@CurrentUser() user: any) {
+    return this.secretaryService.getTeachers(user.schoolId);
+  }
+
   // Listar professores e coordenadores
   @Get('users')
   listStaff(@CurrentUser() user: any) {

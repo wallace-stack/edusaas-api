@@ -73,7 +73,7 @@ export class FeedService {
     return this.feedRepository.findOne({
       where: { id: saved.id },
       relations: ['author'],
-    });
+    }) as Promise<FeedPost>;
   }
 
   async findAll(

@@ -4,8 +4,19 @@ import { Resend } from 'resend';
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly resend = new Resend(process.env.RESEND_API_KEY);
+  private readonly resend: Resend | null;
   private readonly from = process.env.MAIL_FROM || 'EduSaaS <onboarding@resend.dev>';
+
+  constructor() {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (apiKey) {
+      this.resend = new Resend(apiKey);
+      this.logger.log('MailService inicializado com Resend');
+    } else {
+      this.resend = null;
+      this.logger.warn('RESEND_API_KEY não configurada — e-mails desabilitados');
+    }
+  }
 
   private baseTemplate(title: string, content: string): string {
     return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${title}</title></head><body style="margin:0;padding:0;background:#F0F4F8;font-family:'Segoe UI',Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F4F8;padding:40px 0;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;"><tr><td align="center" style="padding-bottom:24px;"><table cellpadding="0" cellspacing="0"><tr><td style="background:#1E3A5F;border-radius:16px;padding:12px 24px;text-align:center;"><span style="color:#fff;font-size:22px;font-weight:700;letter-spacing:1px;">EduSaaS</span></td></tr></table></td></tr><tr><td style="background:#fff;border-radius:20px;padding:40px 48px;box-shadow:0 4px 24px rgba(0,0,0,0.07);">${content}</td></tr><tr><td align="center" style="padding-top:28px;"><p style="color:#94a3b8;font-size:12px;margin:0;">© ${new Date().getFullYear()} EduSaaS · Plataforma de Gestão Educacional</p></td></tr></table></td></tr></table></body></html>`;
@@ -33,6 +44,10 @@ export class MailService {
       <p style="color:#94a3b8;font-size:13px;margin:0;text-align:center;">Qualquer dúvida, responda este e-mail. 💙</p>
     `;
     try {
+      if (!this.resend) {
+        this.logger.warn('[Mail] E-mail não enviado — Resend não configurado');
+        return;
+      }
       await this.resend.emails.send({
         from: this.from,
         to: directorEmail,
@@ -56,6 +71,10 @@ export class MailService {
       ${this.btnPrimary('https://edusaas-web-xi.vercel.app/planos', 'Ver planos e assinar →')}
     `;
     try {
+      if (!this.resend) {
+        this.logger.warn('[Mail] E-mail não enviado — Resend não configurado');
+        return;
+      }
       await this.resend.emails.send({
         from: this.from,
         to: email,
@@ -79,6 +98,10 @@ export class MailService {
       ${this.btnPrimary('https://edusaas-web-xi.vercel.app/planos', 'Escolher um plano →')}
     `;
     try {
+      if (!this.resend) {
+        this.logger.warn('[Mail] E-mail não enviado — Resend não configurado');
+        return;
+      }
       await this.resend.emails.send({
         from: this.from,
         to: email,
@@ -102,6 +125,10 @@ export class MailService {
       ${this.btnPrimary('https://edusaas-web-xi.vercel.app/login', 'Acessar o EduSaaS →')}
     `;
     try {
+      if (!this.resend) {
+        this.logger.warn('[Mail] E-mail não enviado — Resend não configurado');
+        return;
+      }
       await this.resend.emails.send({
         from: this.from,
         to: email,
@@ -126,6 +153,10 @@ export class MailService {
       </div>
     `;
     try {
+      if (!this.resend) {
+        this.logger.warn('[Mail] E-mail não enviado — Resend não configurado');
+        return;
+      }
       await this.resend.emails.send({
         from: this.from,
         to: email,

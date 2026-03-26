@@ -58,7 +58,7 @@ export class FeedPost {
 
   @ManyToOne(() => SchoolClass, { eager: false, nullable: true })
   @JoinColumn({ name: 'classId' })
-  class!: SchoolClass;
+  schoolClass!: SchoolClass;
 
   @CreateDateColumn()
   createdAt!: Date;

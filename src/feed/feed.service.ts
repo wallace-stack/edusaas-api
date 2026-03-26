@@ -72,7 +72,7 @@ export class FeedService {
     const saved = await this.feedRepository.save(post);
     return this.feedRepository.findOne({
       where: { id: saved.id },
-      relations: ['author'],
+      relations: ['author', 'schoolClass'],
     }) as Promise<FeedPost>;
   }
 
@@ -89,6 +89,7 @@ export class FeedService {
     const qb = this.feedRepository
       .createQueryBuilder('post')
       .leftJoinAndSelect('post.author', 'author')
+      .leftJoinAndSelect('post.schoolClass', 'schoolClass')
       .where('post.schoolId = :schoolId', { schoolId })
       .andWhere('post.active = true');
 
@@ -144,7 +145,7 @@ export class FeedService {
   async findOne(id: string, schoolId: number): Promise<FeedPost> {
     const post = await this.feedRepository.findOne({
       where: { id, schoolId, active: true },
-      relations: ['author'],
+      relations: ['author', 'schoolClass'],
     });
     if (!post) throw new NotFoundException('Post não encontrado.');
 

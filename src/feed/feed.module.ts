@@ -5,12 +5,14 @@ import { FeedController } from './feed.controller';
 import { FeedPost } from './feed-post.entity';
 import { SchoolsModule } from '../schools/schools.module'; 
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { ClassesModule } from 'src/classes/classes.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([FeedPost]),
     SchoolsModule, 
     CloudinaryModule,
+    ClassesModule,
   ],
   controllers: [FeedController],
   providers: [FeedService],

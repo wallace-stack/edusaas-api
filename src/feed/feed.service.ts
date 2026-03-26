@@ -69,7 +69,11 @@ export class FeedService {
       pinned: canPin ? (dto.pinned ?? false) : false,
     });
 
-    return this.feedRepository.save(post);
+    const saved = await this.feedRepository.save(post);
+    return this.feedRepository.findOne({
+      where: { id: saved.id },
+      relations: ['author'],
+    });
   }
 
   async findAll(

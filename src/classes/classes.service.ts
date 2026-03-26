@@ -45,10 +45,12 @@ export class ClassesService {
   }
 
   async findSubjectsByClass(classId: number, schoolId: number): Promise<SchoolSubject[]> {
-    return this.SchoolSubjectsRepository.find({
+    const subjects = await this.SchoolSubjectsRepository.find({
       where: { classId, schoolId, isActive: true },
       relations: ['teacher'],
     });
+    console.log('SUBJECTS:', JSON.stringify(subjects));
+    return subjects;
   }
 
   async removeSubject(classId: number, subjectId: number, schoolId: number): Promise<{ message: string }> {

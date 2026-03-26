@@ -3,8 +3,8 @@ import { School } from '../schools/school.entity';
 import { User } from '../users/user.entity';
 import { SchoolClass } from './class.entity';
 
-@Entity('subjects')  // 👈 nome explícito da tabela
-export class SchoolSubject {  // 👈 renomeado de Subject para SchoolSubject
+@Entity('subjects')
+export class SchoolSubject {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -15,17 +15,17 @@ export class SchoolSubject {  // 👈 renomeado de Subject para SchoolSubject
   workload: number;
 
   @ManyToOne(() => SchoolClass)
-  @JoinColumn({ name: 'class_id' })
+  @JoinColumn({ name: 'classId' })
   schoolClass: SchoolClass;
 
-  @Column()
+  @Column({ name: 'classId' })
   classId: number;
 
   @ManyToOne(() => User, { nullable: true })
-  @JoinColumn({ name: 'teacher_id' })
+  @JoinColumn({ name: 'teacherId' })
   teacher: User;
 
-  @Column({ nullable: true })
+  @Column({ name: 'teacherId', nullable: true })
   teacherId: number;
 
   @Column()

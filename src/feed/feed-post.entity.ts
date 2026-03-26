@@ -39,25 +39,25 @@ export class FeedPost {
   @Column({ default: true })
   active!: boolean;
 
-  @Column()
+  @Column({ name: 'schoolId' })
   schoolId!: number;
 
-  @Column()
+  @Column({ name: 'authorId' })
   authorId!: number;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'classId' })
   classId!: number;
 
   @ManyToOne(() => School, { eager: false })
-  @JoinColumn({ name: 'school_id' })
+  @JoinColumn({ name: 'schoolId' })
   school!: School;
 
   @ManyToOne(() => User, { eager: false })
-  @JoinColumn({ name: 'author_id' })
+  @JoinColumn({ name: 'authorId' })
   author!: User;
 
   @ManyToOne(() => SchoolClass, { eager: false, nullable: true })
-  @JoinColumn({ name: 'class_id' })
+  @JoinColumn({ name: 'classId' })
   class!: SchoolClass;
 
   @CreateDateColumn()

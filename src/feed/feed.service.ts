@@ -208,7 +208,8 @@ export class FeedService {
 
     const urls = await Promise.all(files.map((f) => this.cloudinaryService.uploadImage(f)));
     post.images = [...currentImages, ...urls];
-    return this.feedRepository.save(post);
+    await this.feedRepository.save(post);
+    return this.findOne(post.id, post.schoolId);
   }
 
   private async validateTeacherInClass(classId: number, teacherId: number, schoolId: number): Promise<void> {

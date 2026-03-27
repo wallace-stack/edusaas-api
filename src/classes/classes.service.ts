@@ -46,7 +46,7 @@ export class ClassesService {
 
   async findSubjectsByClass(classId: number, schoolId: number): Promise<SchoolSubject[]> {
     const subjects = await this.SchoolSubjectsRepository.find({
-      where: { classId, schoolId, isActive: true },
+      where: { classId, schoolId },
       relations: ['teacher'],
     });
     console.log('SUBJECTS:', JSON.stringify(subjects));

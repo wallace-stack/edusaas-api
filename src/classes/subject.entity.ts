@@ -1,39 +1,38 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
-import { School } from '../schools/school.entity';
 import { User } from '../users/user.entity';
 import { SchoolClass } from './class.entity';
 
 @Entity('subjects')
 export class SchoolSubject {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column()
-  name: string;
+  name!: string;
 
   @Column({ nullable: true })
-  workload: number;
+  workload!: number;
 
-  @ManyToOne(() => SchoolClass)
+  @ManyToOne(() => SchoolClass, (schoolClass) => schoolClass.subjects)
   @JoinColumn({ name: 'classId' })
-  schoolClass: SchoolClass;
+  schoolClass!: SchoolClass;
 
   @Column({ name: 'classId' })
-  classId: number;
+  classId!: number;
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'teacherId' })
-  teacher: User;
+  teacher!: User;
 
   @Column({ name: 'teacherId', nullable: true })
-  teacherId: number;
+  teacherId!: number;
 
   @Column()
-  schoolId: number;
+  schoolId!: number;
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 }

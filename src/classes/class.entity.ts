@@ -1,6 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { School } from '../schools/school.entity';
-import { User } from '../users/user.entity';
+import { SchoolSubject } from './subject.entity';
 
 @Entity()
 export class SchoolClass {
@@ -8,23 +8,29 @@ export class SchoolClass {
   id: number;
 
   @Column()
-  name: string; // Ex: "Turma A", "3º Ano B"
+  name: string;
 
   @Column()
-  year: number; // Ano letivo
+  year: number;
 
   @Column({ nullable: true })
-  period: string; // Manhã, Tarde, Noite
+  period: string;
+
+  @Column({ nullable: true })
+  shift: string;
 
   @Column({ default: true })
   isActive: boolean;
 
   @ManyToOne(() => School)
-  @JoinColumn({ name: 'school_id' })
+  @JoinColumn({ name: 'schoolId' })
   school: School;
 
   @Column()
   schoolId: number;
+
+  @OneToMany(() => SchoolSubject, (subject) => subject.schoolClass)
+  subjects: SchoolSubject[];
 
   @CreateDateColumn()
   createdAt: Date;

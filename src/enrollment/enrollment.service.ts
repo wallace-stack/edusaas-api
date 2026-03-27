@@ -58,6 +58,8 @@ export class EnrollmentService {
 
   async transferByStudent(studentId: number, newClassId: number, schoolId: number): Promise<Enrollment> {
     const currentYear = new Date().getFullYear();
+
+    // Desativa matrícula atual
     const current = await this.enrollmentRepository.findOne({
       where: { studentId, schoolId, year: currentYear, status: EnrollmentStatus.ACTIVE },
     });
@@ -65,6 +67,17 @@ export class EnrollmentService {
       current.status = EnrollmentStatus.TRANSFERRED;
       await this.enrollmentRepository.save(current);
     }
+
+    // Cancela qualquer enrollment anterior na turma destino (evita conflito de unique)
+    const existing = await this.enrollmentRepository.findOne({
+      where: { studentId, classId: newClassId, year: currentYear },
+    });
+    if (existing) {
+      existing.status = EnrollmentStatus.ACTIVE;
+      return this.enrollmentRepository.save(existing);
+    }
+
+    // Cria novo enrollment
     return this.enroll(studentId, newClassId, schoolId);
   }
 

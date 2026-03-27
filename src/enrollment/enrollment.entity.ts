@@ -14,38 +14,38 @@ export enum EnrollmentStatus {
 @Unique(['studentId', 'classId', 'year'])
 export class Enrollment {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'student_id' })
-  student: User;
+  @JoinColumn({ name: 'studentId' })
+  student!: User;
 
   @Column()
-  studentId: number;
+  studentId!: number;
 
   @ManyToOne(() => SchoolClass, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'class_id' })
-  schoolClass: SchoolClass;
+  @JoinColumn({ name: 'classId' })
+  schoolClass!: SchoolClass;
 
   @Column()
-  classId: number;
+  classId!: number;
 
   @ManyToOne(() => School, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'school_id' })
-  school: School;
+  @JoinColumn({ name: 'schoolId' })
+  school!: School;
 
   @Column()
-  schoolId: number;
+  schoolId!: number;
 
   @Column()
-  year: number;
+  year!: number;
 
   @Column({ type: 'enum', enum: EnrollmentStatus, default: EnrollmentStatus.ACTIVE })
-  status: EnrollmentStatus;
+  status!: EnrollmentStatus;
 
   @CreateDateColumn()
-  enrolledAt: Date;
+  enrolledAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

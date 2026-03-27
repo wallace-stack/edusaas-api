@@ -132,8 +132,13 @@ export class SecretaryService {
       schoolId,
     });
 
+    console.log('ENROLLMENT: criando aluno', user.id, 'classId:', dto.classId);
+
     if (dto.classId) {
-      await this.enrollmentService.enroll(user.id, dto.classId, schoolId);
+      const enrollment = await this.enrollmentService.enroll(user.id, dto.classId, schoolId);
+      console.log('ENROLLMENT: criado', JSON.stringify(enrollment));
+    } else {
+      console.log('ENROLLMENT: classId não fornecido, aluno sem turma');
     }
 
     const { password: _, ...safe } = user as any;

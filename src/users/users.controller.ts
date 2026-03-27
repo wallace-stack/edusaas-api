@@ -23,9 +23,9 @@ export class UsersController {
     return this.usersService.findBySchool(user.schoolId, role);
   }
 
-  // Apenas coordenador e diretor podem criar usuários
+  // Diretor, coordenador e secretaria podem criar usuários
   @Post()
-  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
   create(
     @CurrentUser() user: any,
     @Body() createUserDto: CreateUserDto,
@@ -38,7 +38,7 @@ export class UsersController {
 
   // Busca um usuário por ID
   @Get(':id')
-  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
   findOne(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: any,

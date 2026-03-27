@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { User, UserRole } from '../users/user.entity';
 import { SchoolClass } from '../classes/class.entity';
 import { Tuition, TuitionStatus } from '../finance/tuition.entity';
+import { Enrollment, EnrollmentStatus } from '../enrollment/enrollment.entity';
 import { UsersService } from '../users/users.service';
 import { FinanceService } from '../finance/finance.service';
 import { ClassesService } from '../classes/classes.service';
@@ -26,6 +27,8 @@ export class SecretaryService {
     private classesRepository: Repository<SchoolClass>,
     @InjectRepository(Tuition)
     private tuitionRepository: Repository<Tuition>,
+    @InjectRepository(Enrollment)
+    private enrollmentRepository: Repository<Enrollment>,
     private usersService: UsersService,
     private classesService: ClassesService,
     private financeService: FinanceService,
@@ -65,36 +68,49 @@ export class SecretaryService {
     };
   }
 
-  // Lista todos os alunos com status financeiro
+  // Lista todos os alunos com status financeiro e turma atual
   async listStudents(schoolId: number): Promise<any[]> {
-    const students = await this.usersRepository.find({
-      where: { schoolId, role: UserRole.STUDENT, isActive: true },
-      order: { name: 'ASC' },
-    });
+    const currentYear = new Date().getFullYear();
 
-    const overdueByStudent = await this.tuitionRepository
-      .createQueryBuilder('t')
-      .select('t.studentId', 'studentId')
-      .addSelect('COUNT(*)', 'overdueCount')
-      .where('t.schoolId = :schoolId', { schoolId })
-      .andWhere('t.status = :status', { status: TuitionStatus.OVERDUE })
-      .groupBy('t.studentId')
-      .getRawMany();
+    const [students, enrollments, overdueByStudent] = await Promise.all([
+      this.usersRepository.find({
+        where: { schoolId, role: UserRole.STUDENT, isActive: true },
+        order: { name: 'ASC' },
+      }),
+      this.enrollmentRepository.find({
+        where: { schoolId, year: currentYear, status: EnrollmentStatus.ACTIVE },
+        relations: ['schoolClass'],
+      }),
+      this.tuitionRepository
+        .createQueryBuilder('t')
+        .select('t.studentId', 'studentId')
+        .addSelect('COUNT(*)', 'overdueCount')
+        .where('t.schoolId = :schoolId', { schoolId })
+        .andWhere('t.status = :status', { status: TuitionStatus.OVERDUE })
+        .groupBy('t.studentId')
+        .getRawMany(),
+    ]);
 
+    const enrollmentMap = new Map(enrollments.map((e) => [e.studentId, e]));
     const overdueMap = new Map<number, number>(
       overdueByStudent.map((r) => [Number(r.studentId), Number(r.overdueCount)]),
     );
 
-    return students.map((s) => ({
-      id: s.id,
-      name: s.name,
-      email: s.email,
-      phone: s.phone,
-      document: s.document,
-      createdAt: s.createdAt,
-      financialStatus: overdueMap.has(s.id) ? 'overdue' : 'ok',
-      overdueCount: overdueMap.get(s.id) ?? 0,
-    }));
+    return students.map((s) => {
+      const enrollment = enrollmentMap.get(s.id);
+      return {
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        phone: s.phone,
+        document: s.document,
+        createdAt: s.createdAt,
+        class: enrollment?.schoolClass ? { id: enrollment.schoolClass.id, name: enrollment.schoolClass.name } : null,
+        classId: enrollment?.classId ?? null,
+        financialStatus: overdueMap.has(s.id) ? 'overdue' : 'ok',
+        overdueCount: overdueMap.get(s.id) ?? 0,
+      };
+    });
   }
 
   // Matricula novo aluno

@@ -1,4 +1,4 @@
-import { IsNumber, IsDateString, IsArray, ValidateNested } from 'class-validator';
+import { IsNumber, IsDateString, IsArray, ValidateNested, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AttendanceStatus } from '../attendance.entity';
 
@@ -6,7 +6,7 @@ export class AttendanceItemDto {
   @IsNumber()
   studentId!: number;
 
-  @IsNumber()
+  @IsEnum(AttendanceStatus)
   status!: AttendanceStatus;
 }
 

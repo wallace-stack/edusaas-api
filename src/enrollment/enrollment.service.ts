@@ -56,6 +56,18 @@ export class EnrollmentService {
     });
   }
 
+  async transferByStudent(studentId: number, newClassId: number, schoolId: number): Promise<Enrollment> {
+    const currentYear = new Date().getFullYear();
+    const current = await this.enrollmentRepository.findOne({
+      where: { studentId, schoolId, year: currentYear, status: EnrollmentStatus.ACTIVE },
+    });
+    if (current) {
+      current.status = EnrollmentStatus.TRANSFERRED;
+      await this.enrollmentRepository.save(current);
+    }
+    return this.enroll(studentId, newClassId, schoolId);
+  }
+
   async transfer(enrollmentId: number, newClassId: number): Promise<Enrollment> {
     const enrollment = await this.enrollmentRepository.findOne({ where: { id: enrollmentId } });
     if (!enrollment) throw new NotFoundException('Matrícula não encontrada.');

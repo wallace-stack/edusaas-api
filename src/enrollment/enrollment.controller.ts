@@ -47,7 +47,17 @@ export class EnrollmentController {
     return this.enrollmentService.getClassStudents(classId, user.schoolId);
   }
 
-  // Transferir matrícula para outra turma — secretary, coordinator, director
+  // Transferir por studentId — secretary, coordinator, director
+  @Post('transfer')
+  @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
+  transferByStudent(
+    @Body() dto: { studentId: number; newClassId: number },
+    @CurrentUser() user: any,
+  ) {
+    return this.enrollmentService.transferByStudent(dto.studentId, dto.newClassId, user.schoolId);
+  }
+
+  // Transferir matrícula por enrollmentId — secretary, coordinator, director
   @Patch(':id/transfer/:newClassId')
   @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
   transfer(

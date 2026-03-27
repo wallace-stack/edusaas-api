@@ -92,6 +92,8 @@ export class SecretaryService {
     ]);
 
     const enrollmentMap = new Map(enrollments.map((e) => [e.studentId, e]));
+    console.log('ENROLLMENT MAP:', JSON.stringify([...enrollmentMap.entries()]));
+    console.log('STUDENTS IDs:', students.map(s => s.id));
     const overdueMap = new Map<number, number>(
       overdueByStudent.map((r) => [Number(r.studentId), Number(r.overdueCount)]),
     );

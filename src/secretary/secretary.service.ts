@@ -103,7 +103,6 @@ export class SecretaryService {
         name: s.name,
         email: s.email,
         phone: s.phone,
-        document: s.document,
         createdAt: s.createdAt,
         class: enrollment?.schoolClass ? { id: enrollment.schoolClass.id, name: enrollment.schoolClass.name } : null,
         classId: enrollment?.classId ?? null,

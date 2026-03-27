@@ -70,7 +70,6 @@ export class SecretaryService {
 
   // Lista todos os alunos com status financeiro e turma atual
   async listStudents(schoolId: number): Promise<any[]> {
-    console.log('listStudents chamado para schoolId:', schoolId);
     const currentYear = new Date().getFullYear();
 
     const [students, enrollments] = await Promise.all([
@@ -84,19 +83,23 @@ export class SecretaryService {
       }),
     ]);
 
-    console.log('STUDENTS COUNT:', students.length);
-    console.log('ENROLLMENTS COUNT:', enrollments.length);
-    console.log('ENROLLMENTS:', JSON.stringify(enrollments.map(e => ({
-      studentId: e.studentId,
-      classId: e.classId,
-      className: e.schoolClass?.name,
-    }))));
-
     const enrollmentMap = new Map(enrollments.map(e => [e.studentId, e]));
+
+    const overdueList = await this.tuitionRepository
+      .createQueryBuilder('t')
+      .select('t.studentId', 'studentId')
+      .addSelect('COUNT(*)', 'overdueCount')
+      .where('t.schoolId = :schoolId', { schoolId })
+      .andWhere('t.status = :status', { status: TuitionStatus.OVERDUE })
+      .groupBy('t.studentId')
+      .getRawMany();
+
+    const overdueMap = new Map<number, number>(
+      overdueList.map(r => [Number(r.studentId), Number(r.overdueCount)]),
+    );
 
     return students.map(s => {
       const enrollment = enrollmentMap.get(s.id);
-      console.log(`Student ${s.id} (${s.name}): enrollment =`, enrollment?.classId ?? 'NONE');
       return {
         id: s.id,
         name: s.name,
@@ -107,7 +110,8 @@ export class SecretaryService {
           ? { id: enrollment.schoolClass.id, name: enrollment.schoolClass.name }
           : null,
         classId: enrollment?.classId ?? null,
-        financialStatus: 'ok',
+        financialStatus: overdueMap.has(s.id) ? 'overdue' : 'ok',
+        overdueCount: overdueMap.get(s.id) ?? 0,
       };
     });
   }

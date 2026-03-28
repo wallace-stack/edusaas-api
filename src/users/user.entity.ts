@@ -48,6 +48,12 @@ export class User {
   @Column({ nullable: true })
   zipCode: string;
 
+  @Column({ nullable: true })
+  addressNumber: string;
+
+  @Column({ nullable: true })
+  complement: string;
+
   // Responsável (para alunos menores)
   @Column({ nullable: true })
   guardianName: string;

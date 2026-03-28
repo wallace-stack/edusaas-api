@@ -32,6 +32,14 @@ export class CreateEnrollmentDto {
   @IsString()
   zipCode?: string;
 
+  @IsOptional()
+  @IsString()
+  addressNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  complement?: string;
+
   @IsString()
   @IsNotEmpty()
   guardianName!: string;

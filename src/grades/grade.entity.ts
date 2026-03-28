@@ -4,56 +4,56 @@ import { SchoolSubject } from '../classes/subject.entity';
 import { SchoolClass } from '../classes/class.entity';
 
 export enum GradeType {
-  EXAM = 'exam',           // Prova
-  ASSIGNMENT = 'assignment', // Trabalho
-  QUIZ = 'quiz',           // Quiz
-  FINAL = 'final',         // Final
+  EXAM = 'exam',
+  ASSIGNMENT = 'assignment',
+  QUIZ = 'quiz',
+  FINAL = 'final',
 }
 
 @Entity()
 export class Grade {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'decimal', precision: 5, scale: 2 })
-  value: number;
+  value!: number;
 
   @Column({ type: 'enum', enum: GradeType })
-  type: GradeType;
+  type!: GradeType;
 
   @Column({ nullable: true })
-  description: string;
+  description!: string;
 
   @Column()
-  period: number; // Bimestre/Trimestre
+  period!: number;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'student_id' })
-  student: User;
+  @JoinColumn({ name: 'studentId' })
+  student!: User;
 
   @Column()
-  studentId: number;
+  studentId!: number;
 
   @ManyToOne(() => SchoolSubject)
-  @JoinColumn({ name: 'subject_id' })
-  subject: SchoolSubject;
+  @JoinColumn({ name: 'subjectId' })
+  subject!: SchoolSubject;
 
   @Column()
-  subjectId: number;
+  subjectId!: number;
 
   @ManyToOne(() => SchoolClass)
-  @JoinColumn({ name: 'class_id' })
-  schoolClass: SchoolClass;
+  @JoinColumn({ name: 'classId' })
+  schoolClass!: SchoolClass;
 
   @Column()
-  classId: number;
+  classId!: number;
 
   @Column()
-  schoolId: number;
+  schoolId!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

@@ -24,21 +24,21 @@ export class Attendance {
   justification: string;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'student_id' })
+  @JoinColumn({ name: 'studentId' })
   student: User;
 
   @Column()
   studentId: number;
 
   @ManyToOne(() => SchoolSubject)
-  @JoinColumn({ name: 'subject_id' })
+  @JoinColumn({ name: 'subjectId' })
   subject: SchoolSubject;
 
   @Column()
   subjectId: number;
 
   @ManyToOne(() => SchoolClass)
-  @JoinColumn({ name: 'class_id' })
+  @JoinColumn({ name: 'classId' })
   schoolClass: SchoolClass;
 
   @Column()

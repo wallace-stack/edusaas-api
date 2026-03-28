@@ -29,7 +29,7 @@ export class NotificationsController {
   // Conta não lidas
   @Get('unread-count')
   countUnread(@CurrentUser() user: any) {
-    return this.notificationsService.countUnread(user.userId, user.schoolId);
+    return this.notificationsService.countUnread(user.userId, user.role, user.schoolId);
   }
 
   // Marca uma como lida
@@ -44,7 +44,7 @@ export class NotificationsController {
   // Marca todas como lidas
   @Patch('read-all')
   markAllAsRead(@CurrentUser() user: any) {
-    return this.notificationsService.markAllAsRead(user.userId, user.schoolId);
+    return this.notificationsService.markAllAsRead(user.userId, user.role, user.schoolId);
   }
 
   // Editar notificação

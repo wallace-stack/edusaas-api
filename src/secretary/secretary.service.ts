@@ -167,14 +167,39 @@ export class SecretaryService {
 
     await this.mailService.sendMail({
       to: dto.email,
-      subject: 'Bem-vindo ao EduSaaS — Suas credenciais de acesso',
+      subject: `${dto.name}, suas credenciais de acesso ao EduSaaS`,
       html: `
-        <h2>Olá, ${dto.name}!</h2>
-        <p>Sua matrícula foi realizada com sucesso.</p>
-        <p><strong>Email:</strong> ${dto.email}</p>
-        <p><strong>Senha temporária:</strong> ${password}</p>
-        <p>Acesse: <a href="https://edusaas-web-xi.vercel.app/login">edusaas-web-xi.vercel.app/login</a></p>
-        <p>Recomendamos que você altere sua senha após o primeiro acesso.</p>
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <div style="background: #1E3A5F; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">EduSaaS</h1>
+            <p style="color: #a0b4c8; margin: 5px 0 0;">Gestão Escolar Inteligente</p>
+          </div>
+          <div style="background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+            <h2 style="color: #1E3A5F;">Olá, ${dto.name}! 👋</h2>
+            <p>Sua matrícula foi realizada com sucesso. Aqui estão suas credenciais de acesso:</p>
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;">
+              <p style="margin: 0 0 10px;"><strong>📧 Email:</strong> ${dto.email}</p>
+              <p style="margin: 0;"><strong>🔑 Senha temporária:</strong> <code style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px;">${password}</code></p>
+            </div>
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="https://edusaas-web-xi.vercel.app/login"
+                 style="background: #1E3A5F; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                Acessar o Sistema
+              </a>
+            </div>
+            <p style="color: #64748b; font-size: 13px;">
+              ⚠️ Por segurança, recomendamos alterar sua senha após o primeiro acesso.
+            </p>
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+            <p style="color: #94a3b8; font-size: 12px; text-align: center; margin: 0;">
+              Este email foi enviado automaticamente pelo sistema EduSaaS.<br>
+              Em caso de dúvidas, entre em contato com a secretaria da sua escola.
+            </p>
+          </div>
+        </body>
+        </html>
       `,
     });
 

@@ -22,7 +22,7 @@ export class AttendanceService {
   async bulkCreate(dto: BulkAttendanceDto, schoolId: number): Promise<Attendance[]> {
     const attendances = dto.attendances.map(item =>
       this.attendanceRepository.create({
-        date: new Date(dto.date),
+        date: new Date(dto.date + 'T12:00:00.000Z'),
         subjectId: dto.subjectId,
         classId: dto.classId,
         studentId: item.studentId,
@@ -67,7 +67,7 @@ export class AttendanceService {
     return this.attendanceRepository.find({
       where: { classId, subjectId, schoolId },
       relations: ['student', 'subject'],
-      order: { date: 'DESC' },
+      order: { date: 'DESC', studentId: 'ASC' },
     });
   }
 

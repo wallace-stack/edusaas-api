@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification, NotificationTarget, NotificationType } from './notification.entity';
@@ -92,5 +92,25 @@ export class NotificationsService {
       .where('n.schoolId = :schoolId AND n.isRead = false', { schoolId })
       .andWhere('(n.targetUserId = :userId OR n.targetUserId IS NULL)', { userId })
       .getCount();
+  }
+
+  async update(id: number, dto: Partial<CreateNotificationDto>, schoolId: number, userId: number, role: string): Promise<Notification> {
+    const notification = await this.notificationsRepository.findOne({ where: { id, schoolId } });
+    if (!notification) throw new NotFoundException('Notificação não encontrada.');
+    if (role === UserRole.TEACHER && notification.createdById !== userId) {
+      throw new ForbiddenException('Sem permissão para editar esta notificação.');
+    }
+    Object.assign(notification, dto);
+    return this.notificationsRepository.save(notification);
+  }
+
+  async remove(id: number, schoolId: number, userId: number, role: string): Promise<{ message: string }> {
+    const notification = await this.notificationsRepository.findOne({ where: { id, schoolId } });
+    if (!notification) throw new NotFoundException('Notificação não encontrada.');
+    if (role === UserRole.TEACHER && notification.createdById !== userId) {
+      throw new ForbiddenException('Sem permissão para excluir esta notificação.');
+    }
+    await this.notificationsRepository.remove(notification);
+    return { message: 'Notificação removida com sucesso.' };
   }
 }

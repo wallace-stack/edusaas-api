@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
@@ -45,5 +45,26 @@ export class NotificationsController {
   @Patch('read-all')
   markAllAsRead(@CurrentUser() user: any) {
     return this.notificationsService.markAllAsRead(user.userId, user.schoolId);
+  }
+
+  // Editar notificação
+  @Patch(':id')
+  @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY, UserRole.TEACHER)
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: Partial<CreateNotificationDto>,
+    @CurrentUser() user: any,
+  ) {
+    return this.notificationsService.update(id, dto, user.schoolId, user.userId, user.role);
+  }
+
+  // Remover notificação
+  @Delete(':id')
+  @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY, UserRole.TEACHER)
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.notificationsService.remove(id, user.schoolId, user.userId, user.role);
   }
 }

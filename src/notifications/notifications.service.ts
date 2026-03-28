@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notification, NotificationTarget, NotificationType } from './notification.entity';
+import { Notification, NotificationTarget } from './notification.entity';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { UserRole } from '../users/user.entity';
@@ -44,31 +44,7 @@ export class NotificationsService {
       .orderBy('n.createdAt', 'DESC')
       .take(50);
 
-    if (role === UserRole.STUDENT) {
-      const enrollment = await this.enrollmentService.getStudentClass(userId, schoolId);
-      const classId = enrollment?.classId ?? null;
-      qb.andWhere(
-        '(n.target = :allStudents OR (n.target = :student AND n.targetUserId = :userId)' +
-        (classId ? ' OR (n.target = :class AND n.classId = :classId)' : '') + ')',
-        { allStudents: NotificationTarget.ALL_STUDENTS, student: NotificationTarget.STUDENT, userId, class: NotificationTarget.CLASS, classId },
-      );
-    } else if (role === UserRole.TEACHER) {
-      qb.andWhere(
-        '(n.target = :class AND n.createdById = :userId)',
-        { class: NotificationTarget.CLASS, userId },
-      );
-    } else {
-      // director / coordinator / secretary
-      qb.andWhere(
-        '(n.target = :director OR n.target = :allAdmins OR (n.target = :specific AND n.targetUserId = :userId))',
-        {
-          director: NotificationTarget.DIRECTOR,
-          allAdmins: NotificationTarget.ALL_ADMINS,
-          specific: NotificationTarget.SPECIFIC,
-          userId,
-        },
-      );
-    }
+    await this.applyRoleFilter(qb, 'n', userId, role, schoolId);
 
     return qb.getMany();
   }
@@ -77,21 +53,56 @@ export class NotificationsService {
     await this.notificationsRepository.update({ id, schoolId }, { isRead: true });
   }
 
-  async markAllAsRead(userId: number, schoolId: number): Promise<void> {
-    await this.notificationsRepository
+  async markAllAsRead(userId: number, role: string, schoolId: number): Promise<void> {
+    const qb = this.notificationsRepository
       .createQueryBuilder()
       .update(Notification)
       .set({ isRead: true })
-      .where('schoolId = :schoolId AND (targetUserId = :userId OR targetUserId IS NULL)', { schoolId, userId })
-      .execute();
+      .where('schoolId = :schoolId', { schoolId });
+
+    await this.applyRoleFilter(qb, '', userId, role, schoolId);
+
+    await qb.execute();
   }
 
-  async countUnread(userId: number, schoolId: number): Promise<number> {
-    return this.notificationsRepository
+  async countUnread(userId: number, role: string, schoolId: number): Promise<number> {
+    const qb = this.notificationsRepository
       .createQueryBuilder('n')
-      .where('n.schoolId = :schoolId AND n.isRead = false', { schoolId })
-      .andWhere('(n.targetUserId = :userId OR n.targetUserId IS NULL)', { userId })
-      .getCount();
+      .where('n.schoolId = :schoolId AND n.isRead = false', { schoolId });
+
+    await this.applyRoleFilter(qb, 'n', userId, role, schoolId);
+
+    return qb.getCount();
+  }
+
+  private async applyRoleFilter(qb: any, alias: string, userId: number, role: string, schoolId: number): Promise<void> {
+    const p = alias ? `${alias}.` : '';
+
+    if (role === UserRole.STUDENT) {
+      const enrollment = await this.enrollmentService.getStudentClass(userId, schoolId);
+      const classId = enrollment?.classId ?? null;
+      qb.andWhere(
+        `(${p}target = :allStudents OR (${p}target = :student AND ${p}targetUserId = :userId)` +
+        (classId ? ` OR (${p}target = :class AND ${p}classId = :classId)` : '') + ')',
+        { allStudents: NotificationTarget.ALL_STUDENTS, student: NotificationTarget.STUDENT, userId, class: NotificationTarget.CLASS, classId },
+      );
+    } else if (role === UserRole.TEACHER) {
+      qb.andWhere(
+        `(${p}target = :class AND ${p}createdById = :userId)`,
+        { class: NotificationTarget.CLASS, userId },
+      );
+    } else {
+      // director / coordinator / secretary
+      qb.andWhere(
+        `(${p}target = :director OR ${p}target = :allAdmins OR (${p}target = :specific AND ${p}targetUserId = :userId))`,
+        {
+          director: NotificationTarget.DIRECTOR,
+          allAdmins: NotificationTarget.ALL_ADMINS,
+          specific: NotificationTarget.SPECIFIC,
+          userId,
+        },
+      );
+    }
   }
 
   async update(id: number, dto: Partial<CreateNotificationDto>, schoolId: number, userId: number, role: string): Promise<Notification> {

@@ -62,6 +62,15 @@ export class AttendanceService {
     });
   }
 
+  // Frequência de uma turma por disciplina
+  async findByClassAndSubject(classId: number, subjectId: number, schoolId: number): Promise<Attendance[]> {
+    return this.attendanceRepository.find({
+      where: { classId, subjectId, schoolId },
+      relations: ['student', 'subject'],
+      order: { date: 'DESC' },
+    });
+  }
+
   // Relatório de frequência da turma
   async getClassAttendanceReport(classId: number, schoolId: number): Promise<any> {
     const records = await this.attendanceRepository.find({

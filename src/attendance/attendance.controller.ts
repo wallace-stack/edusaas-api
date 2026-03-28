@@ -45,6 +45,17 @@ export class AttendanceController {
     return this.attendanceService.findByStudent(studentId, user.schoolId);
   }
 
+  // Chamadas por turma e disciplina
+  @Get('class/:classId/subject/:subjectId')
+  @Roles(UserRole.TEACHER, UserRole.COORDINATOR, UserRole.DIRECTOR)
+  findByClassAndSubject(
+    @Param('classId', ParseIntPipe) classId: number,
+    @Param('subjectId', ParseIntPipe) subjectId: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.attendanceService.findByClassAndSubject(classId, subjectId, user.schoolId);
+  }
+
   // Relatório de frequência da turma
   @Get('class/:classId/report')
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)

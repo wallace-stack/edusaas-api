@@ -18,8 +18,17 @@ export class Grade {
   @Column({ type: 'decimal', precision: 5, scale: 2 })
   value!: number;
 
-  @Column({ type: 'enum', enum: GradeType })
+  @Column({ type: 'enum', enum: GradeType, nullable: true })
   type!: GradeType;
+
+  @Column({ type: 'int' })
+  instrument!: number;
+
+  @Column({ nullable: true })
+  label!: string;
+
+  @Column({ type: 'decimal', precision: 3, scale: 1, default: 1 })
+  weight!: number;
 
   @Column({ nullable: true })
   description!: string;

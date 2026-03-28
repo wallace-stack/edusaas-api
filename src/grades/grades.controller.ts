@@ -37,6 +37,13 @@ export class GradesController {
     return this.gradesService.findByStudent(studentId, user.schoolId);
   }
 
+  // Lançamento em lote
+  @Post('bulk')
+  @Roles(UserRole.TEACHER, UserRole.COORDINATOR, UserRole.DIRECTOR)
+  bulkCreate(@Body() grades: CreateGradeDto[], @CurrentUser() user: any) {
+    return this.gradesService.bulkCreate(grades, user.schoolId);
+  }
+
   // Notas de uma turma por disciplina
   @Get('class/:classId/subject/:subjectId')
   @Roles(UserRole.TEACHER, UserRole.COORDINATOR, UserRole.DIRECTOR)

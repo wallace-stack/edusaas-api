@@ -7,6 +7,10 @@ export enum NotificationType {
   PAYMENT_OVERDUE = 'payment_overdue',
   TRIAL_EXPIRING = 'trial_expiring',
   SYSTEM = 'system',
+  EXAM_SCHEDULED = 'exam_scheduled',
+  EXAM_CHANGED = 'exam_changed',
+  EXAM_CANCELLED = 'exam_cancelled',
+  CLASS_NOTICE = 'class_notice',
 }
 
 export enum NotificationTarget {
@@ -39,21 +43,21 @@ export class Notification {
   targetUserId!: number;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'target_user_id' })
+  @JoinColumn({ name: 'targetUserId' })
   targetUser!: User;
 
   @Column({ nullable: true })
   classId!: number;
 
   @ManyToOne(() => SchoolClass, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'class_id' })
+  @JoinColumn({ name: 'classId' })
   class!: SchoolClass;
 
   @Column({ default: false })
   isRead!: boolean;
 
   @ManyToOne(() => User, { nullable: true })
-  @JoinColumn({ name: 'created_by' })
+  @JoinColumn({ name: 'createdById' })
   createdBy!: User;
 
   @Column({ nullable: true })

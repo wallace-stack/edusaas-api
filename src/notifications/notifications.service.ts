@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notification, NotificationTarget } from './notification.entity';
+import { Notification, NotificationTarget, NotificationType } from './notification.entity';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { UserRole } from '../users/user.entity';
@@ -14,7 +14,14 @@ export class NotificationsService {
     private enrollmentService: EnrollmentService,
   ) {}
 
-  async create(dto: CreateNotificationDto, schoolId: number, createdById: number): Promise<Notification> {
+  async create(dto: CreateNotificationDto, schoolId: number, createdById: number, role: string): Promise<Notification> {
+    // Professor só pode criar notificações para turmas
+    if (role === UserRole.TEACHER) {
+      if (dto.target !== NotificationTarget.CLASS || !dto.classId) {
+        throw new BadRequestException('Professor só pode criar notificações para turmas específicas.');
+      }
+    }
+
     if (dto.target === NotificationTarget.CLASS && !dto.classId) {
       throw new BadRequestException('classId é obrigatório para target=CLASS.');
     }
@@ -40,11 +47,15 @@ export class NotificationsService {
     if (role === UserRole.STUDENT) {
       const enrollment = await this.enrollmentService.getStudentClass(userId, schoolId);
       const classId = enrollment?.classId ?? null;
-
       qb.andWhere(
         '(n.target = :allStudents OR (n.target = :student AND n.targetUserId = :userId)' +
         (classId ? ' OR (n.target = :class AND n.classId = :classId)' : '') + ')',
         { allStudents: NotificationTarget.ALL_STUDENTS, student: NotificationTarget.STUDENT, userId, class: NotificationTarget.CLASS, classId },
+      );
+    } else if (role === UserRole.TEACHER) {
+      qb.andWhere(
+        '(n.target = :class AND n.createdById = :userId)',
+        { class: NotificationTarget.CLASS, userId },
       );
     } else {
       // director / coordinator / secretary

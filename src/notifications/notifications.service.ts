@@ -40,6 +40,7 @@ export class NotificationsService {
   async findForUser(userId: number, role: string, schoolId: number): Promise<Notification[]> {
     const qb = this.notificationsRepository
       .createQueryBuilder('n')
+      .leftJoinAndSelect('n.createdBy', 'createdBy')
       .where('n.schoolId = :schoolId', { schoolId })
       .orderBy('n.createdAt', 'DESC')
       .take(50);
@@ -54,23 +55,43 @@ export class NotificationsService {
   }
 
   async markAllAsRead(userId: number, role: string, schoolId: number): Promise<void> {
-    const qb = this.notificationsRepository
+    const ids = await this.findForUser(userId, role, schoolId);
+    const unreadIds = ids.filter(n => !n.isRead).map(n => n.id);
+    if (unreadIds.length === 0) return;
+
+    await this.notificationsRepository
       .createQueryBuilder()
       .update(Notification)
       .set({ isRead: true })
-      .where('schoolId = :schoolId', { schoolId });
-
-    await this.applyRoleFilter(qb, '', userId, role, schoolId);
-
-    await qb.execute();
+      .whereInIds(unreadIds)
+      .execute();
   }
 
   async countUnread(userId: number, role: string, schoolId: number): Promise<number> {
     const qb = this.notificationsRepository
       .createQueryBuilder('n')
-      .where('n.schoolId = :schoolId AND n.isRead = false', { schoolId });
+      .where('n.schoolId = :schoolId', { schoolId })
+      .andWhere('n.isRead = false');
 
-    await this.applyRoleFilter(qb, 'n', userId, role, schoolId);
+    if (role === UserRole.STUDENT) {
+      const enrollment = await this.enrollmentService.getStudentClass(userId, schoolId);
+      const classId = enrollment?.classId ?? null;
+      qb.andWhere(
+        '(n.target = :allStudents OR (n.target = :student AND n.targetUserId = :userId)' +
+        (classId ? ' OR (n.target = :class AND n.classId = :classId)' : '') + ')',
+        { allStudents: NotificationTarget.ALL_STUDENTS, student: NotificationTarget.STUDENT, userId, class: NotificationTarget.CLASS, classId },
+      );
+    } else if (role === UserRole.TEACHER) {
+      qb.andWhere(
+        '(n.target = :class AND n.createdById = :userId)',
+        { class: NotificationTarget.CLASS, userId },
+      );
+    } else {
+      qb.andWhere(
+        '(n.target = :director OR n.target = :allAdmins OR (n.target = :specific AND n.targetUserId = :userId))',
+        { director: NotificationTarget.DIRECTOR, allAdmins: NotificationTarget.ALL_ADMINS, specific: NotificationTarget.SPECIFIC, userId },
+      );
+    }
 
     return qb.getCount();
   }

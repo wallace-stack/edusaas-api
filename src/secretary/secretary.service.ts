@@ -17,6 +17,7 @@ import { SecretaryCreateTuitionDto, SecretaryPayTuitionDto } from './dto/create-
 import { CreateClassDto } from '../classes/dto/create-class.dto';
 import { PlanLimitsService } from '../plans/plan-limits.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class SecretaryService {
@@ -34,6 +35,7 @@ export class SecretaryService {
     private financeService: FinanceService,
     private planLimitsService: PlanLimitsService,
     private enrollmentService: EnrollmentService,
+    private mailService: MailService,
   ) {}
 
   // Dashboard da secretária — visão operacional
@@ -128,31 +130,52 @@ export class SecretaryService {
     const { allowed, current, limit } = await this.planLimitsService.canAddStudent(schoolId);
     if (!allowed) {
       throw new ForbiddenException(
-        `Limite de alunos do plano atingido (${current}/${limit}). Faça upgrade do plano para matricular mais alunos.`,
+        `Limite de alunos do plano atingido (${current}/${limit}).`,
       );
     }
+
+    // Gera senha automática segura
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$';
+    const randomPassword = Array.from({ length: 10 }, () =>
+      chars[Math.floor(Math.random() * chars.length)]
+    ).join('');
+    const password = 'Ed' + randomPassword + '1@';
 
     const user = await this.usersService.create({
       name: dto.name,
       email: dto.email,
-      password: dto.password,
+      password,
       phone: dto.phone,
-      document: dto.document,
+      address: dto.address,
+      city: dto.city,
+      state: dto.state,
+      zipCode: dto.zipCode,
+      guardianName: dto.guardianName,
+      guardianPhone: dto.guardianPhone,
+      guardianRelation: dto.guardianRelation,
       role: UserRole.STUDENT,
       schoolId,
     });
 
-    console.log('ENROLLMENT: criando aluno', user.id, 'classId:', dto.classId);
-
     if (dto.classId) {
-      const enrollment = await this.enrollmentService.enroll(user.id, dto.classId, schoolId);
-      console.log('ENROLLMENT: criado', JSON.stringify(enrollment));
-    } else {
-      console.log('ENROLLMENT: classId não fornecido, aluno sem turma');
+      await this.enrollmentService.enroll(user.id, dto.classId, schoolId);
     }
 
+    await this.mailService.sendMail({
+      to: dto.email,
+      subject: 'Bem-vindo ao EduSaaS — Suas credenciais de acesso',
+      html: `
+        <h2>Olá, ${dto.name}!</h2>
+        <p>Sua matrícula foi realizada com sucesso.</p>
+        <p><strong>Email:</strong> ${dto.email}</p>
+        <p><strong>Senha temporária:</strong> ${password}</p>
+        <p>Acesse: <a href="https://edusaas-web-xi.vercel.app/login">edusaas-web-xi.vercel.app/login</a></p>
+        <p>Recomendamos que você altere sua senha após o primeiro acesso.</p>
+      `,
+    });
+
     const { password: _, ...safe } = user as any;
-    return safe;
+    return { ...safe, message: 'Aluno matriculado. Credenciais enviadas por email.' };
   }
 
   // Lista turmas

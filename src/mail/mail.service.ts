@@ -141,6 +141,19 @@ export class MailService {
     }
   }
 
+  async sendMail({ to, subject, html }: { to: string; subject: string; html: string }) {
+    try {
+      if (!this.resend) {
+        this.logger.warn('[Mail] E-mail não enviado — Resend não configurado');
+        return;
+      }
+      await this.resend.emails.send({ from: this.from, to, subject, html });
+      this.logger.log(`[Mail] E-mail enviado para ${to}`);
+    } catch (error) {
+      this.logger.error(`[Mail] Erro ao enviar para ${to}:`, error);
+    }
+  }
+
   async sendPasswordReset(email: string, name: string, resetToken: string) {
     const firstName = name.split(' ')[0];
     const resetUrl = `https://edusaas-web-xi.vercel.app/nova-senha?token=${resetToken}`;

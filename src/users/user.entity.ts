@@ -35,6 +35,29 @@ export class User {
   @Column({ nullable: true })
   birthDate: Date;
 
+  // Endereço
+  @Column({ nullable: true })
+  address: string;
+
+  @Column({ nullable: true })
+  city: string;
+
+  @Column({ nullable: true })
+  state: string;
+
+  @Column({ nullable: true })
+  zipCode: string;
+
+  // Responsável (para alunos menores)
+  @Column({ nullable: true })
+  guardianName: string;
+
+  @Column({ nullable: true })
+  guardianPhone: string;
+
+  @Column({ nullable: true })
+  guardianRelation: string;
+
   @Column({ default: true })
   isActive: boolean;
 

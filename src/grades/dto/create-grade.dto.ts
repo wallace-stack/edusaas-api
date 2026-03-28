@@ -7,8 +7,10 @@ export class CreateGradeDto {
   @Max(10)
   value!: number;
 
-  @IsEnum(GradeType)
-  type!: GradeType;
+  @IsNumber()
+  @Min(1)
+  @Max(3)
+  instrument!: number;
 
   @IsNumber()
   studentId!: number;
@@ -20,7 +22,23 @@ export class CreateGradeDto {
   classId!: number;
 
   @IsNumber()
+  @Min(1)
+  @Max(4)
   period!: number;
+
+  @IsOptional()
+  @IsString()
+  label?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(10)
+  weight?: number;
+
+  @IsOptional()
+  @IsEnum(GradeType)
+  type?: GradeType;
 
   @IsOptional()
   @IsString()

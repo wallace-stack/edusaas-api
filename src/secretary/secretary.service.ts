@@ -106,6 +106,13 @@ export class SecretaryService {
         email: s.email,
         phone: s.phone,
         createdAt: s.createdAt,
+        address: s.address,
+        city: s.city,
+        state: s.state,
+        zipCode: s.zipCode,
+        guardianName: s.guardianName,
+        guardianPhone: s.guardianPhone,
+        guardianRelation: s.guardianRelation,
         class: enrollment?.schoolClass
           ? { id: enrollment.schoolClass.id, name: enrollment.schoolClass.name }
           : null,

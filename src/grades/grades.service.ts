@@ -30,7 +30,7 @@ export class GradesService {
   async findByClass(classId: number, subjectId: number, schoolId: number): Promise<Grade[]> {
     return this.gradesRepository.find({
       where: { classId, subjectId, schoolId },
-      relations: ['student'],
+      relations: ['student', 'subject'],
       order: { studentId: 'ASC' },
     });
   }

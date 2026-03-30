@@ -53,6 +53,6 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: any,
   ) {
-    return this.usersService.remove(id, user.schoolId);
+    return this.usersService.remove(id, user.schoolId, user.userId);
   }
 }

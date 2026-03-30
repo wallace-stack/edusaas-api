@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner, LessThan } from 'typeorm';
 import { User, UserRole } from './user.entity';
@@ -71,8 +71,13 @@ export class UsersService {
     });
   }
 
-  async remove(id: number, schoolId: number): Promise<void> {
+  async remove(id: number, schoolId: number, requestingUserId?: number): Promise<void> {
     const user = await this.findOne(id, schoolId);
+
+    if (user.role === UserRole.DIRECTOR && user.id === requestingUserId) {
+      throw new ForbiddenException('O diretor não pode excluir a si mesmo.');
+    }
+
     user.isActive = false;
     await this.usersRepository.save(user);
   }

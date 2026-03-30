@@ -6,6 +6,7 @@ import { Grade } from '../grades/grade.entity';
 import { Attendance, AttendanceStatus } from '../attendance/attendance.entity';
 import { Tuition, TuitionStatus } from '../finance/tuition.entity';
 import { Notification } from '../notifications/notification.entity';
+import { SchoolSubject } from '../classes/subject.entity';
 
 @Injectable()
 export class MetricsService {
@@ -20,6 +21,8 @@ export class MetricsService {
     private tuitionRepository: Repository<Tuition>,
     @InjectRepository(Notification)
     private notificationsRepository: Repository<Notification>,
+    @InjectRepository(SchoolSubject)
+    private subjectRepository: Repository<SchoolSubject>,
   ) {}
 
   // Dashboard do diretor — visão geral da escola
@@ -125,9 +128,34 @@ export class MetricsService {
 
   // Dashboard do professor — suas turmas
   async getTeacherDashboard(teacherId: number, schoolId: number): Promise<any> {
+    // Obter turmas do professor via disciplinas
+    const subjects = await this.subjectRepository.find({
+      where: { teacherId, schoolId },
+      select: ['classId'],
+    });
+
+    const classIds = [...new Set(subjects.map(s => s.classId))];
+
+    if (classIds.length === 0) {
+      return {
+        totalGrades: 0,
+        avgGrade: 0,
+        totalAttendance: 0,
+        avgAttendance: '0%',
+      };
+    }
+
     const [grades, attendances] = await Promise.all([
-      this.gradesRepository.find({ where: { schoolId } }),
-      this.attendanceRepository.find({ where: { schoolId } }),
+      this.gradesRepository
+        .createQueryBuilder('g')
+        .where('g.schoolId = :schoolId', { schoolId })
+        .andWhere('g.classId IN (:...classIds)', { classIds })
+        .getMany(),
+      this.attendanceRepository
+        .createQueryBuilder('a')
+        .where('a.schoolId = :schoolId', { schoolId })
+        .andWhere('a.classId IN (:...classIds)', { classIds })
+        .getMany(),
     ]);
 
     const avgGrade = grades.length > 0
@@ -140,9 +168,9 @@ export class MetricsService {
       : 0;
 
     return {
-      totalGradesLaunched: grades.length,
+      totalGrades: grades.length,
       avgGrade,
-      totalAttendanceRecords: attendances.length,
+      totalAttendance: attendances.length,
       avgAttendance: `${avgAttendance}%`,
     };
   }

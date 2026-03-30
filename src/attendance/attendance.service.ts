@@ -20,17 +20,37 @@ export class AttendanceService {
 
   // Registra frequência em massa (toda a turma de uma vez)
   async bulkCreate(dto: BulkAttendanceDto, schoolId: number): Promise<Attendance[]> {
-    const attendances = dto.attendances.map(item =>
-      this.attendanceRepository.create({
-        date: new Date(dto.date + 'T12:00:00.000Z'),
-        subjectId: dto.subjectId,
-        classId: dto.classId,
-        studentId: item.studentId,
-        status: item.status,
-        schoolId,
-      }),
-    );
-    return this.attendanceRepository.save(attendances);
+    const results: Attendance[] = [];
+    const dateValue = new Date(dto.date + 'T12:00:00.000Z');
+
+    for (const item of dto.attendances) {
+      const existing = await this.attendanceRepository.findOne({
+        where: {
+          studentId: item.studentId,
+          subjectId: dto.subjectId,
+          classId: dto.classId,
+          date: dateValue,
+          schoolId,
+        },
+      });
+
+      if (existing) {
+        existing.status = item.status;
+        results.push(await this.attendanceRepository.save(existing));
+      } else {
+        const attendance = this.attendanceRepository.create({
+          date: dateValue,
+          subjectId: dto.subjectId,
+          classId: dto.classId,
+          studentId: item.studentId,
+          status: item.status,
+          schoolId,
+        });
+        results.push(await this.attendanceRepository.save(attendance));
+      }
+    }
+
+    return results;
   }
 
   // Frequência de um aluno
@@ -56,9 +76,11 @@ export class AttendanceService {
 
   // Frequência de uma turma em uma data
   async findByClassAndDate(classId: number, date: string, schoolId: number): Promise<Attendance[]> {
+    const dateValue = new Date(date + 'T12:00:00.000Z');
     return this.attendanceRepository.find({
-      where: { classId, schoolId },
+      where: { classId, date: dateValue, schoolId },
       relations: ['student'],
+      order: { studentId: 'ASC' },
     });
   }
 

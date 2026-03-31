@@ -20,8 +20,33 @@ export class ClassesService {
     return this.classesRepository.save(schoolClass);
   }
 
-  async findAllClasses(schoolId: number): Promise<SchoolClass[]> {
-    return this.classesRepository.find({ where: { schoolId, isActive: true } });
+  async findAllClasses(schoolId: number): Promise<any[]> {
+    const currentYear = new Date().getFullYear();
+    const classes = await this.classesRepository
+      .createQueryBuilder('c')
+      .leftJoin('c.subjects', 'subject')
+      .leftJoin('subject.teacher', 'teacher')
+      .where('c.schoolId = :schoolId', { schoolId })
+      .andWhere('c.isActive = true')
+      .getMany();
+
+    const results: any[] = [];
+    for (const c of classes) {
+      const count = await this.classesRepository.manager
+        .createQueryBuilder()
+        .select('COUNT(*)', 'total')
+        .from('enrollment', 'e')
+        .where('e.classId = :classId', { classId: c.id })
+        .andWhere('e.year = :year', { year: currentYear })
+        .andWhere('e.status = :status', { status: 'active' })
+        .getRawOne();
+
+      results.push({
+        ...c,
+        totalStudents: parseInt(count?.total || '0'),
+      });
+    }
+    return results;
   }
 
   async findOneClass(id: number, schoolId: number): Promise<SchoolClass> {
@@ -49,7 +74,6 @@ export class ClassesService {
       where: { classId, schoolId },
       relations: ['teacher'],
     });
-    console.log('SUBJECTS:', JSON.stringify(subjects));
     return subjects;
   }
 

@@ -20,6 +20,7 @@ export enum NotificationTarget {
   CLASS = 'class',
   ALL_STUDENTS = 'all_students',
   STUDENT = 'student',
+  ALL_SCHOOL = 'all_school',
 }
 
 @Entity()

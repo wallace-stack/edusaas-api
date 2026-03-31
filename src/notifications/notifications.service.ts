@@ -77,19 +77,19 @@ export class NotificationsService {
       const enrollment = await this.enrollmentService.getStudentClass(userId, schoolId);
       const classId = enrollment?.classId ?? null;
       qb.andWhere(
-        '(n.target = :allStudents OR (n.target = :student AND n.targetUserId = :userId)' +
+        '(n.target = :allStudents OR n.target = :allSchool OR (n.target = :student AND n.targetUserId = :userId)' +
         (classId ? ' OR (n.target = :class AND n.classId = :classId)' : '') + ')',
-        { allStudents: NotificationTarget.ALL_STUDENTS, student: NotificationTarget.STUDENT, userId, class: NotificationTarget.CLASS, classId },
+        { allStudents: NotificationTarget.ALL_STUDENTS, allSchool: NotificationTarget.ALL_SCHOOL, student: NotificationTarget.STUDENT, userId, class: NotificationTarget.CLASS, classId },
       );
     } else if (role === UserRole.TEACHER) {
       qb.andWhere(
-        '(n.target = :class AND n.createdById = :userId)',
-        { class: NotificationTarget.CLASS, userId },
+        '(n.target = :allSchool OR (n.target = :class AND n.createdById = :userId))',
+        { allSchool: NotificationTarget.ALL_SCHOOL, class: NotificationTarget.CLASS, userId },
       );
     } else {
       qb.andWhere(
-        '(n.target = :director OR n.target = :allAdmins OR (n.target = :specific AND n.targetUserId = :userId))',
-        { director: NotificationTarget.DIRECTOR, allAdmins: NotificationTarget.ALL_ADMINS, specific: NotificationTarget.SPECIFIC, userId },
+        '(n.target = :director OR n.target = :allAdmins OR n.target = :allSchool OR (n.target = :specific AND n.targetUserId = :userId))',
+        { director: NotificationTarget.DIRECTOR, allAdmins: NotificationTarget.ALL_ADMINS, allSchool: NotificationTarget.ALL_SCHOOL, specific: NotificationTarget.SPECIFIC, userId },
       );
     }
 
@@ -103,22 +103,23 @@ export class NotificationsService {
       const enrollment = await this.enrollmentService.getStudentClass(userId, schoolId);
       const classId = enrollment?.classId ?? null;
       qb.andWhere(
-        `(${p}target = :allStudents OR (${p}target = :student AND ${p}targetUserId = :userId)` +
+        `(${p}target = :allStudents OR ${p}target = :allSchool OR (${p}target = :student AND ${p}targetUserId = :userId)` +
         (classId ? ` OR (${p}target = :class AND ${p}classId = :classId)` : '') + ')',
-        { allStudents: NotificationTarget.ALL_STUDENTS, student: NotificationTarget.STUDENT, userId, class: NotificationTarget.CLASS, classId },
+        { allStudents: NotificationTarget.ALL_STUDENTS, allSchool: NotificationTarget.ALL_SCHOOL, student: NotificationTarget.STUDENT, userId, class: NotificationTarget.CLASS, classId },
       );
     } else if (role === UserRole.TEACHER) {
       qb.andWhere(
-        `(${p}target = :class AND ${p}createdById = :userId)`,
-        { class: NotificationTarget.CLASS, userId },
+        `(${p}target = :allSchool OR (${p}target = :class AND ${p}createdById = :userId))`,
+        { allSchool: NotificationTarget.ALL_SCHOOL, class: NotificationTarget.CLASS, userId },
       );
     } else {
       // director / coordinator / secretary
       qb.andWhere(
-        `(${p}target = :director OR ${p}target = :allAdmins OR (${p}target = :specific AND ${p}targetUserId = :userId))`,
+        `(${p}target = :director OR ${p}target = :allAdmins OR ${p}target = :allSchool OR (${p}target = :specific AND ${p}targetUserId = :userId))`,
         {
           director: NotificationTarget.DIRECTOR,
           allAdmins: NotificationTarget.ALL_ADMINS,
+          allSchool: NotificationTarget.ALL_SCHOOL,
           specific: NotificationTarget.SPECIFIC,
           userId,
         },

@@ -81,4 +81,24 @@ export class UsersService {
     user.isActive = false;
     await this.usersRepository.save(user);
   }
+
+  async update(id: number, schoolId: number, data: Partial<{
+    name: string;
+    phone: string;
+    document: string;
+    birthDate: Date;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    addressNumber: string;
+    complement: string;
+    guardianName: string;
+    guardianPhone: string;
+    guardianRelation: string;
+  }>): Promise<User> {
+    const user = await this.findOne(id, schoolId);
+    Object.assign(user, data);
+    return this.usersRepository.save(user);
+  }
 }

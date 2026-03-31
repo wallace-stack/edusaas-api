@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, ParseIntPipe, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, ParseIntPipe, UseGuards, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -34,6 +34,23 @@ export class UsersController {
       ...createUserDto,
       schoolId: user.schoolId,
     });
+  }
+
+  // Usuário vê seu próprio perfil
+  @Get('me/profile')
+  getMyProfile(@CurrentUser() user: any) {
+    return this.usersService.findOne(user.userId, user.schoolId);
+  }
+
+  // Usuário edita seu próprio perfil
+  @Patch('me/profile')
+  updateMyProfile(
+    @CurrentUser() user: any,
+    @Body() data: any,
+  ) {
+    // Não permitir alterar role, email, schoolId, password
+    const { role, email, schoolId, password, isActive, resetToken, resetTokenExpiry, ...safeData } = data;
+    return this.usersService.update(user.userId, user.schoolId, safeData);
   }
 
   // Busca um usuário por ID

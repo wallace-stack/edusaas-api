@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, QueryRunner, LessThan } from 'typeorm';
+import { Repository, QueryRunner } from 'typeorm';
 import { User, UserRole } from './user.entity';
+import { SchoolSubject } from '../classes/subject.entity';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -9,6 +10,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(SchoolSubject)
+    private subjectsRepository: Repository<SchoolSubject>,
   ) { }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -21,10 +24,37 @@ export class UsersService {
     return user;
   }
 
-  async findBySchool(schoolId: number, role?: UserRole): Promise<User[]> {
+  async findBySchool(schoolId: number, role?: UserRole): Promise<User[] | any[]> {
+    if (role === UserRole.TEACHER) {
+      return this.findTeachersWithSubjects(schoolId);
+    }
     const where: any = { schoolId, isActive: true };
     if (role) where.role = role;
     return this.usersRepository.find({ where });
+  }
+
+  async findTeachersWithSubjects(schoolId: number): Promise<any[]> {
+    const teachers = await this.usersRepository.find({
+      where: { schoolId, role: UserRole.TEACHER, isActive: true },
+    });
+
+    const subjects = await this.subjectsRepository.find({
+      where: { schoolId },
+      relations: ['schoolClass'],
+    });
+
+    return teachers.map(teacher => ({
+      id: teacher.id,
+      name: teacher.name,
+      email: teacher.email,
+      phone: teacher.phone,
+      subjects: subjects
+        .filter(s => s.teacherId === teacher.id)
+        .map(s => ({
+          subjectName: s.name,
+          className: s.schoolClass?.name ?? null,
+        })),
+    }));
   }
 
   async create(data: Partial<User>): Promise<User> {

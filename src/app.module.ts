@@ -33,6 +33,7 @@ import { FeedPost } from './feed/feed-post.entity';
 import { PlansModule } from './plans/plans.module';
 import { EnrollmentModule } from './enrollment/enrollment.module';
 import { Enrollment } from './enrollment/enrollment.entity';
+import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { Enrollment } from './enrollment/enrollment.entity';
     FeedModule,
     PlansModule,
     EnrollmentModule,
+    SeedModule, // TODO: remover antes do MVP
   ],
   controllers: [AppController],
   providers: [

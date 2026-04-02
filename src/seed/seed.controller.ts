@@ -15,11 +15,28 @@ export class SeedController {
   ) {}
 
   // TODO: remover antes do MVP
+  @Get('sync')
+  async syncSchema(@Query('token') token: string) {
+    if (token !== SEED_TOKEN) {
+      throw new ForbiddenException('Token inválido.');
+    }
+    console.log('Sincronizando schema do banco...');
+    await this.dataSource.synchronize(false);
+    console.log('✅ Schema sincronizado!');
+    return { success: true, message: 'Schema sincronizado com sucesso.' };
+  }
+
+  // TODO: remover antes do MVP
   @Get('demo')
   async runDemo(@Query('token') token: string) {
     if (token !== SEED_TOKEN) {
       throw new ForbiddenException('Token inválido.');
     }
+
+    // Sincronizar tabelas faltantes antes do seed
+    console.log('Sincronizando schema do banco...');
+    await this.dataSource.synchronize(false);
+    console.log('✅ Schema OK');
 
     await runDemoSeed(this.dataSource);
 

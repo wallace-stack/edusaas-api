@@ -3,6 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
 import { User, UserRole } from './user.entity';
 import { SchoolSubject } from '../classes/subject.entity';
+import { Enrollment, EnrollmentStatus } from '../enrollment/enrollment.entity';
+import { GradesService } from '../grades/grades.service';
+import { AttendanceService } from '../attendance/attendance.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -12,6 +15,10 @@ export class UsersService {
     private usersRepository: Repository<User>,
     @InjectRepository(SchoolSubject)
     private subjectsRepository: Repository<SchoolSubject>,
+    @InjectRepository(Enrollment)
+    private enrollmentRepository: Repository<Enrollment>,
+    private gradesService: GradesService,
+    private attendanceService: AttendanceService,
   ) { }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -27,6 +34,9 @@ export class UsersService {
   async findBySchool(schoolId: number, role?: UserRole): Promise<User[] | any[]> {
     if (role === UserRole.TEACHER) {
       return this.findTeachersWithSubjects(schoolId);
+    }
+    if (role === UserRole.STUDENT) {
+      return this.findStudentsWithDetails(schoolId);
     }
     const where: any = { schoolId, isActive: true };
     if (role) where.role = role;
@@ -57,6 +67,114 @@ export class UsersService {
     }));
   }
 
+  async findStudentsWithDetails(schoolId: number): Promise<any[]> {
+    const students = await this.usersRepository.find({
+      where: { schoolId, role: UserRole.STUDENT, isActive: true },
+    });
+
+    const currentYear = new Date().getFullYear();
+    const enrollments = await this.enrollmentRepository.find({
+      where: { schoolId, year: currentYear, status: EnrollmentStatus.ACTIVE },
+      relations: ['schoolClass'],
+    });
+
+    const enrollmentMap = new Map(enrollments.map(e => [e.studentId, e]));
+
+    const results: any[] = [];
+    for (const student of students) {
+      const enrollment = enrollmentMap.get(student.id);
+      const { gradeAverage, attendanceRate } = await this.computeStudentStats(student.id, schoolId);
+
+      let situation: string;
+      if (gradeAverage === null) situation = 'NO_GRADES';
+      else if (gradeAverage >= 6) situation = 'APPROVED';
+      else if (gradeAverage >= 5) situation = 'RECOVERY';
+      else situation = 'FAILED';
+
+      results.push({
+        id: student.id,
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        classId: enrollment?.classId ?? null,
+        className: enrollment?.schoolClass?.name ?? null,
+        gradeAverage,
+        attendanceRate,
+        situation,
+      });
+    }
+    return results;
+  }
+
+  async getProfileDetail(id: number, schoolId: number): Promise<any> {
+    const user = await this.usersRepository.findOne({
+      where: { id, schoolId },
+      relations: ['school'],
+    });
+    if (!user) throw new NotFoundException('Usuário não encontrado');
+
+    const enrollments = await this.enrollmentRepository.find({
+      where: { studentId: id, schoolId },
+      relations: ['schoolClass'],
+    });
+
+    const { gradeAverage, attendanceRate } = await this.computeStudentStats(id, schoolId);
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      school: user.school ? { id: user.school.id, name: user.school.name } : null,
+      enrollments: enrollments.map(e => ({
+        class: e.schoolClass ? { id: e.schoolClass.id, name: e.schoolClass.name, year: e.schoolClass.year } : null,
+        status: e.status,
+      })),
+      gradeAverage,
+      attendanceRate,
+    };
+  }
+
+  private async computeStudentStats(studentId: number, schoolId: number): Promise<{ gradeAverage: number | null; attendanceRate: number | null }> {
+    const grades = await this.gradesService.findByStudent(studentId, schoolId);
+    let gradeAverage: number | null = null;
+    if (grades.length > 0) {
+      // Agrupar por disciplina, calcular média por disciplina, depois média geral
+      const bySubject: Record<number, typeof grades> = {};
+      grades.forEach(g => {
+        if (!bySubject[g.subjectId]) bySubject[g.subjectId] = [];
+        bySubject[g.subjectId].push(g);
+      });
+      const subjectAverages: number[] = [];
+      for (const subjectGrades of Object.values(bySubject)) {
+        const byPeriod: Record<number, typeof grades> = {};
+        subjectGrades.forEach(g => {
+          if (!byPeriod[g.period]) byPeriod[g.period] = [];
+          byPeriod[g.period].push(g);
+        });
+        const periodAvgs: number[] = [];
+        for (const pg of Object.values(byPeriod)) {
+          const avg = this.gradesService.calculatePeriodAverage(pg);
+          if (avg !== null) periodAvgs.push(avg);
+        }
+        if (periodAvgs.length) {
+          subjectAverages.push(Math.round((periodAvgs.reduce((a, b) => a + b, 0) / periodAvgs.length) * 100) / 100);
+        }
+      }
+      if (subjectAverages.length) {
+        gradeAverage = Math.round((subjectAverages.reduce((a, b) => a + b, 0) / subjectAverages.length) * 100) / 100;
+      }
+    }
+
+    const attendanceData = await this.attendanceService.findByStudent(studentId, schoolId);
+    const attendanceRate = attendanceData.summary.total > 0
+      ? attendanceData.summary.percentage
+      : null;
+
+    return { gradeAverage, attendanceRate };
+  }
+
   async create(data: Partial<User>): Promise<User> {
     try {
       const hashedPassword = await bcrypt.hash(data.password!, 10);
@@ -74,7 +192,6 @@ export class UsersService {
     return await queryRunner.manager.save(User, user);
   }
 
-  // Salva o token de reset e sua expiração
   async setResetToken(userId: number, token: string, expiry: Date): Promise<void> {
     await this.usersRepository.update(userId, {
       resetToken: token,
@@ -82,16 +199,12 @@ export class UsersService {
     });
   }
 
-  // Busca usuário pelo token de reset (válido e não expirado)
   async findByResetToken(token: string): Promise<User | null> {
     return this.usersRepository.findOne({
-      where: {
-        resetToken: token,
-      },
+      where: { resetToken: token },
     });
   }
 
-  // Atualiza a senha e limpa o token de reset
   async updatePassword(userId: number, newPassword: string): Promise<void> {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await this.usersRepository.update(userId, {

@@ -52,16 +52,22 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
       where: { name: 'Colégio Horizonte' },
     });
     if (existingSchool) {
-      console.log('Demo seed já foi executado anteriormente. Pulando.');
-      await qr.rollbackTransaction();
-      return;
+      const studentCount = await qr.manager.count(User, {
+        where: { schoolId: existingSchool.id, role: UserRole.STUDENT },
+      });
+      if (studentCount >= 25) {
+        console.log(`Demo seed já completo (escola ID ${existingSchool.id}, ${studentCount} alunos). Pulando.`);
+        await qr.rollbackTransaction();
+        return;
+      }
+      console.log(`Escola encontrada (ID ${existingSchool.id}) mas com apenas ${studentCount} alunos — completando seed...`);
     }
 
     // ── Escola ────────────────────────────────────────────────────────────────
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + 14);
 
-    const school = await qr.manager.save(
+    const school = existingSchool ?? await qr.manager.save(
       School,
       qr.manager.create(School, {
         name: 'Colégio Horizonte',
@@ -293,13 +299,11 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
 
     await qr.commitTransaction();
 
-    console.log('\n✅ Demo seed concluído com sucesso!');
-    console.log(`   🏫 Escola: ${school.name} (id: ${school.id})`);
-    console.log(`   👥 ${alunosDefs.length} alunos | 3 turmas | 7 usuários de equipe`);
-    console.log(`   📚 12 disciplinas (4 por turma × 3 turmas)`);
-    console.log(`   📝 ${totalGrades} notas (2 instrumentos × 4 disciplinas × ${alunosDefs.length} alunos)`);
-    console.log(`   📋 ${totalAttendance} registros de frequência | ${workingDays.length} dias úteis | ${totalPresent} presenças | ${totalAttendance - totalPresent} faltas`);
-    console.log(`   🔔 3 notificações | 📰 2 posts no feed`);
+    console.log('\n✅ Seed concluído — Colégio Horizonte');
+    console.log(`   Escola ID: ${school.id}`);
+    console.log(`   Usuários migrados/criados: 7 (equipe) + ${alunosDefs.length} (alunos)`);
+    console.log(`   Alunos: ${alunosDefs.length}`);
+    console.log(`   📚 12 disciplinas | 📝 ${totalGrades} notas | 📋 ${totalAttendance} chamadas`);
     console.log('\n   Login da diretora : erikacarolinajunqueiradasilva@gmail.com / Horizonte@2026');
     console.log('   Login do aluno    : sophia.ferreira@aluno.horizonte.com / Aluno@2026\n');
 

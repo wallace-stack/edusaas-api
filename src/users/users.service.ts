@@ -113,12 +113,47 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('Usuário não encontrado');
 
-    const enrollments = await this.enrollmentRepository.find({
-      where: { studentId: id, schoolId },
+    const currentYear = new Date().getFullYear();
+    const activeEnrollment = await this.enrollmentRepository.findOne({
+      where: { studentId: id, schoolId, year: currentYear, status: EnrollmentStatus.ACTIVE },
       relations: ['schoolClass'],
     });
 
     const { gradeAverage, attendanceRate } = await this.computeStudentStats(id, schoolId);
+
+    // Notas agrupadas por disciplina
+    const grades = await this.gradesService.findByStudent(id, schoolId);
+    const bySubject: Record<number, { name: string; grades: typeof grades }> = {};
+    grades.forEach(g => {
+      const sid = g.subjectId;
+      if (!bySubject[sid]) bySubject[sid] = { name: g.subject?.name ?? 'Disciplina', grades: [] };
+      bySubject[sid].grades.push(g);
+    });
+
+    const gradesBySubject = Object.values(bySubject).map(({ name, grades: sg }) => {
+      const byPeriod: Record<number, typeof sg> = {};
+      sg.forEach(g => {
+        if (!byPeriod[g.period]) byPeriod[g.period] = [];
+        byPeriod[g.period].push(g);
+      });
+      const periods = Object.entries(byPeriod).map(([p, pg]) => ({
+        period: Number(p),
+        average: this.gradesService.calculatePeriodAverage(pg) ?? 0,
+      })).sort((a, b) => a.period - b.period);
+
+      const periodAvgs = periods.map(p => p.average);
+      const finalAverage = periodAvgs.length
+        ? Math.round((periodAvgs.reduce((a, b) => a + b, 0) / periodAvgs.length) * 100) / 100
+        : null;
+
+      return { subjectName: name, periods, finalAverage };
+    });
+
+    let situation: string;
+    if (gradeAverage === null) situation = 'NO_GRADES';
+    else if (gradeAverage >= 6) situation = 'APPROVED';
+    else if (gradeAverage >= 5) situation = 'RECOVERY';
+    else situation = 'FAILED';
 
     return {
       id: user.id,
@@ -126,13 +161,13 @@ export class UsersService {
       email: user.email,
       phone: user.phone,
       role: user.role,
-      school: user.school ? { id: user.school.id, name: user.school.name } : null,
-      enrollments: enrollments.map(e => ({
-        class: e.schoolClass ? { id: e.schoolClass.id, name: e.schoolClass.name, year: e.schoolClass.year } : null,
-        status: e.status,
-      })),
+      class: activeEnrollment?.schoolClass
+        ? { id: activeEnrollment.schoolClass.id, name: activeEnrollment.schoolClass.name, year: activeEnrollment.schoolClass.year }
+        : null,
       gradeAverage,
       attendanceRate,
+      situation,
+      gradesBySubject,
     };
   }
 

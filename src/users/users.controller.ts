@@ -53,9 +53,9 @@ export class UsersController {
     return this.usersService.update(user.userId, user.schoolId, safeData);
   }
 
-  // Detalhes completos de um aluno (coordenador/diretor/secretária)
+  // Detalhes completos de um aluno (coordenador/diretor/secretária/professor)
   @Get(':id/profile-detail')
-  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
+  @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY, UserRole.TEACHER)
   getProfileDetail(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: any,

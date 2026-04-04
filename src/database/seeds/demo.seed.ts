@@ -86,6 +86,36 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
     const staffPassword = await bcrypt.hash('Horizonte@2026', 10);
     const studentPassword = await bcrypt.hash('Aluno@2026', 10);
 
+    // ── Cleanup de duplicatas da equipe ───────────────────────────────────────
+    const emailsEquipe = [
+      'erikacarolinajunqueiradasilva@gmail.com',
+      'patricia.sousa@horizonte.com',
+      'marcos.oliveira@horizonte.com',
+      'ana.lima@horizonte.com',
+      'bruno.carvalho@horizonte.com',
+      'carla.mendes@horizonte.com',
+      'diego.rocha@horizonte.com',
+    ];
+
+    for (const email of emailsEquipe) {
+      const users = await qr.manager.find(User, { where: { email } });
+      if (users.length > 1) {
+        const [keep, ...duplicates] = users.sort((a, b) => b.id - a.id);
+        await qr.manager.delete(User, duplicates.map(u => u.id));
+        await qr.manager.update(User, keep.id, {
+          schoolId: school.id,
+          password: staffPassword,
+          isActive: true,
+        });
+      } else if (users.length === 1) {
+        await qr.manager.update(User, users[0].id, {
+          schoolId: school.id,
+          password: staffPassword,
+          isActive: true,
+        });
+      }
+    }
+
     // Helper: cria ou migra usuário para a escola demo (atualiza schoolId + senha se já existir)
     async function upsertUser(data: Partial<User>): Promise<User> {
       const found = await qr.manager.findOne(User, { where: { email: data.email! } });

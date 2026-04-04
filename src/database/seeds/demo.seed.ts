@@ -253,6 +253,11 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
       // Chamadas — dias úteis dos últimos 30 dias corridos
       const absentSet = buildAbsentIndices(workingDays.length, def.attendanceRate);
       for (const subj of turmaSubjects) {
+        const existingAttCount = await qr.manager.count(Attendance, {
+          where: { studentId: aluno.id, subjectId: subj.id, classId: def.turma.id, schoolId: school.id },
+        });
+        if (existingAttCount > 0) continue;
+
         for (let i = 0; i < workingDays.length; i++) {
           const date = workingDays[i];
           const status = absentSet.has(i) ? AttendanceStatus.ABSENT : AttendanceStatus.PRESENT;

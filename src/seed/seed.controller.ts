@@ -47,6 +47,45 @@ export class SeedController {
   }
 
   // TODO: remover antes do MVP
+  @Get('reset-director')
+  async resetDirector(@Query('token') token: string) {
+    if (token !== SEED_TOKEN) throw new ForbiddenException('Token inválido.');
+
+    const bcrypt = await import('bcrypt');
+    const newHash = await bcrypt.hash('Horizonte@2026', 10);
+
+    // Atualiza TODOS os usuários com esse email, independente de schoolId
+    const result = await this.dataSource.query(
+      `UPDATE user SET password = ?, isActive = 1
+       WHERE email = 'erikacarolinajunqueiradasilva@gmail.com'`,
+      [newHash]
+    );
+
+    // Também apaga usuários duplicados, deixando só o mais recente
+    const users = await this.dataSource.query(
+      `SELECT id FROM user WHERE email = 'erikacarolinajunqueiradasilva@gmail.com' ORDER BY id DESC`
+    );
+
+    if (users.length > 1) {
+      const [keep, ...duplicates] = users;
+      const ids = duplicates.map((u: any) => u.id).join(',');
+      await this.dataSource.query(`DELETE FROM user WHERE id IN (${ids})`);
+    }
+
+    const finalUser = await this.dataSource.query(
+      `SELECT id, email, role, schoolId, isActive FROM user
+       WHERE email = 'erikacarolinajunqueiradasilva@gmail.com' LIMIT 1`
+    );
+
+    return {
+      success: true,
+      affectedRows: result.affectedRows,
+      user: finalUser[0],
+      message: 'Senha redefinida para Horizonte@2026'
+    };
+  }
+
+  // TODO: remover antes do MVP
   @Get('db-info')
   async dbInfo(@Query('token') token: string) {
     if (token !== SEED_TOKEN) throw new ForbiddenException('Token inválido.');

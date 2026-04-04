@@ -54,35 +54,31 @@ export class SeedController {
     const bcrypt = await import('bcrypt');
     const newHash = await bcrypt.hash('Horizonte@2026', 10);
 
-    // Atualiza TODOS os usuários com esse email, independente de schoolId
-    const result = await this.dataSource.query(
-      `UPDATE user SET password = ?, isActive = 1
-       WHERE email = 'erikacarolinajunqueiradasilva@gmail.com'`,
-      [newHash]
+    // Pega o ID do Colégio Horizonte
+    const school = await this.dataSource.query(
+      `SELECT id FROM school WHERE name = 'Colégio Horizonte' LIMIT 1`
+    );
+    if (!school.length) return { success: false, message: 'Escola não encontrada.' };
+    const schoolId = school[0].id;
+
+    // Deleta qualquer versão existente do email (duplicatas)
+    await this.dataSource.query(
+      `DELETE FROM user WHERE email = 'erikacarolinajunqueiradasilva@gmail.com'`
     );
 
-    // Também apaga usuários duplicados, deixando só o mais recente
-    const users = await this.dataSource.query(
-      `SELECT id FROM user WHERE email = 'erikacarolinajunqueiradasilva@gmail.com' ORDER BY id DESC`
+    // Insere a diretora do zero
+    await this.dataSource.query(
+      `INSERT INTO user (name, email, password, role, schoolId, isActive, createdAt, updatedAt)
+       VALUES (?, ?, ?, 'director', ?, 1, NOW(), NOW())`,
+      ['Érika Junqueira', 'erikacarolinajunqueiradasilva@gmail.com', newHash, schoolId]
     );
 
-    if (users.length > 1) {
-      const [keep, ...duplicates] = users;
-      const ids = duplicates.map((u: any) => u.id).join(',');
-      await this.dataSource.query(`DELETE FROM user WHERE id IN (${ids})`);
-    }
-
-    const finalUser = await this.dataSource.query(
+    const user = await this.dataSource.query(
       `SELECT id, email, role, schoolId, isActive FROM user
        WHERE email = 'erikacarolinajunqueiradasilva@gmail.com' LIMIT 1`
     );
 
-    return {
-      success: true,
-      affectedRows: result.affectedRows,
-      user: finalUser[0],
-      message: 'Senha redefinida para Horizonte@2026'
-    };
+    return { success: true, user: user[0], message: 'Diretora criada com senha Horizonte@2026' };
   }
 
   // TODO: remover antes do MVP

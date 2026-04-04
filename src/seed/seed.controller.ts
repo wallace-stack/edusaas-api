@@ -55,8 +55,24 @@ export class SeedController {
 
     const results: string[] = [];
 
+    // Descobrir tabelas reais via information_schema
+    const dbName = await this.dataSource.query(`SELECT DATABASE() AS db`);
+    const currentDb = dbName[0].db;
+    const tableRows: { TABLE_NAME: string }[] = await this.dataSource.query(
+      `SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_SCHEMA = ?`,
+      [currentDb],
+    );
+    const tableNames = tableRows.map(r => r.TABLE_NAME.toLowerCase());
+    results.push(`Tabelas encontradas: ${tableNames.join(', ')}`);
+
+    // Detectar nome real da tabela de escolas
+    const schoolTable = tableNames.includes('school') ? 'school' : tableNames.includes('schools') ? 'schools' : null;
+    if (!schoolTable) {
+      return { success: false, message: 'Tabela de escolas não encontrada no banco.' };
+    }
+
     const horizonte = await this.dataSource.query(
-      `SELECT id FROM school WHERE name = 'Colégio Horizonte' LIMIT 1`,
+      `SELECT id FROM \`${schoolTable}\` WHERE name = 'Colégio Horizonte' LIMIT 1`,
     );
 
     if (horizonte.length === 0) {
@@ -67,29 +83,49 @@ export class SeedController {
     results.push(`Preservando escola ID ${horizonteId} (Colégio Horizonte)`);
 
     const oldSchools = await this.dataSource.query(
-      `SELECT id, name FROM school WHERE id != ?`, [horizonteId],
+      `SELECT id, name FROM \`${schoolTable}\` WHERE id != ?`, [horizonteId],
     );
 
     if (oldSchools.length === 0) {
       return { success: true, message: 'Nenhuma escola antiga encontrada. Banco já está limpo.' };
     }
 
+    // Mapeamento de possíveis nomes de tabela para cada entidade
+    const tableCandidates: Record<string, string[]> = {
+      attendance: ['attendance'],
+      grade: ['grade', 'grades'],
+      enrollments: ['enrollments', 'enrollment'],
+      tuition: ['tuition'],
+      cash_flow: ['cash_flow'],
+      feed_posts: ['feed_posts', 'feed_post'],
+      notification: ['notification', 'notifications'],
+      subjects: ['subjects', 'school_subject'],
+      school_class: ['school_class', 'school_classes'],
+      user: ['user', 'users'],
+    };
+
+    const resolveTable = (candidates: string[]): string | null => {
+      for (const c of candidates) {
+        if (tableNames.includes(c)) return c;
+      }
+      return null;
+    };
+
     for (const school of oldSchools) {
       const sid = school.id;
       results.push(`Removendo escola "${school.name}" (ID ${sid})...`);
 
-      await this.dataSource.query(`DELETE FROM attendance WHERE schoolId = ?`, [sid]);
-      await this.dataSource.query(`DELETE FROM grade WHERE schoolId = ?`, [sid]);
-      await this.dataSource.query(`DELETE FROM enrollments WHERE schoolId = ?`, [sid]);
-      await this.dataSource.query(`DELETE FROM tuition WHERE schoolId = ?`, [sid]);
-      await this.dataSource.query(`DELETE FROM cash_flow WHERE schoolId = ?`, [sid]);
-      await this.dataSource.query(`DELETE FROM feed_posts WHERE schoolId = ?`, [sid]);
-      await this.dataSource.query(`DELETE FROM notification WHERE schoolId = ?`, [sid]);
-      await this.dataSource.query(`DELETE FROM subjects WHERE schoolId = ?`, [sid]);
-      await this.dataSource.query(`DELETE FROM school_class WHERE schoolId = ?`, [sid]);
-      await this.dataSource.query(`DELETE FROM user WHERE schoolId = ?`, [sid]);
-      await this.dataSource.query(`DELETE FROM school WHERE id = ?`, [sid]);
+      for (const [key, candidates] of Object.entries(tableCandidates)) {
+        const tbl = resolveTable(candidates);
+        if (tbl) {
+          await this.dataSource.query(`DELETE FROM \`${tbl}\` WHERE schoolId = ?`, [sid]);
+          results.push(`  Deletado de ${tbl}`);
+        } else {
+          results.push(`  Tabela não encontrada para: ${key} (candidatos: ${candidates.join(', ')})`);
+        }
+      }
 
+      await this.dataSource.query(`DELETE FROM \`${schoolTable}\` WHERE id = ?`, [sid]);
       results.push(`✅ Escola ID ${sid} removida com todos os dados.`);
     }
 

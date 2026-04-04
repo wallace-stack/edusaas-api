@@ -70,48 +70,54 @@ export class SeedController {
   async purgeOldSchool(@Query('token') token: string) {
     if (token !== SEED_TOKEN) throw new ForbiddenException('Token inválido.');
 
-    // Descobre tabela de escolas
-    const schoolRows = await this.dataSource.query(`SELECT id, name FROM school`)
-      .catch(() => this.dataSource.query(`SELECT id, name FROM schools`).catch(() => []));
+    const schools = await this.dataSource.query(
+      `SELECT id, name FROM school`
+    );
 
-    const horizonte = schoolRows.find((s: any) => s.name === 'Colégio Horizonte');
-    if (!horizonte) return { success: false, message: 'Colégio Horizonte não encontrado. Rode /seed/demo primeiro.' };
+    const horizonte = schools.find((s: any) => s.name === 'Colégio Horizonte');
+    if (!horizonte) return { success: false, message: 'Colégio Horizonte não encontrado.' };
 
-    const horizonteId = horizonte.id;
-    const oldSchools = schoolRows.filter((s: any) => s.id !== horizonteId);
+    const oldSchools = schools.filter((s: any) => s.id !== horizonte.id);
     if (!oldSchools.length) return { success: true, message: 'Banco já está limpo.' };
 
     const log: string[] = [];
 
-    // Desabilita FK checks para deletar sem se preocupar com ordem
     await this.dataSource.query(`SET FOREIGN_KEY_CHECKS = 0`);
-
     try {
       for (const school of oldSchools) {
         const sid = school.id;
-        log.push(`Removendo escola "${school.name}" ID ${sid}`);
+        log.push(`Removendo "${school.name}" (ID ${sid})`);
 
-        const tableList = await this.dataSource.query(
-          `SELECT table_name FROM information_schema.columns
-           WHERE table_schema = DATABASE() AND column_name = 'schoolId'`
-        );
+        // Nomes exatos confirmados pelo db-info
+        const tabelas = [
+          'attendance',
+          'grade',
+          'enrollments',
+          'feed_posts',
+          'notification',
+          'subjects',
+          'school_class',
+          'user',
+        ];
 
-        for (const { table_name } of tableList) {
-          const result = await this.dataSource.query(
-            `DELETE FROM \`${table_name}\` WHERE schoolId = ?`, [sid]
-          );
-          log.push(`  ${table_name}: ${result.affectedRows} linhas removidas`);
+        for (const tbl of tabelas) {
+          try {
+            // Tenta schoolId (camelCase) e school_id (snake_case)
+            const r = await this.dataSource.query(
+              `DELETE FROM \`${tbl}\` WHERE schoolId = ?`, [sid]
+            ).catch(() =>
+              this.dataSource.query(
+                `DELETE FROM \`${tbl}\` WHERE school_id = ?`, [sid]
+              )
+            );
+            log.push(`  ✅ ${tbl}: ${r.affectedRows ?? '?'} linhas removidas`);
+          } catch (e: any) {
+            log.push(`  ⚠️ ${tbl}: ${e.message}`);
+          }
         }
 
-        // Deleta a escola
-        const schoolTable = await this.dataSource.query(
-          `SELECT table_name FROM information_schema.tables
-           WHERE table_schema = DATABASE() AND table_name IN ('school','schools') LIMIT 1`
-        );
-        await this.dataSource.query(
-          `DELETE FROM \`${schoolTable[0].table_name}\` WHERE id = ?`, [sid]
-        );
-        log.push(`Escola ID ${sid} deletada.`);
+        await this.dataSource.query(`DELETE FROM school WHERE id = ?`, [sid]);
+        log.push(`✅ Escola ID ${sid} deletada`);
       }
     } finally {
       await this.dataSource.query(`SET FOREIGN_KEY_CHECKS = 1`);

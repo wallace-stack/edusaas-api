@@ -97,11 +97,26 @@ export class SeedController {
        ORDER BY table_name`
     );
 
-    const schools = await this.dataSource.query(`SELECT id, name FROM school`).catch(() =>
-      this.dataSource.query(`SELECT id, name FROM schools`).catch(() => [])
+    const schools = await this.dataSource.query(`SELECT id, name FROM school`);
+
+    // Mostra as colunas REAIS da tabela user
+    const userColumns = await this.dataSource.query(
+      `SELECT column_name, data_type
+       FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'user'
+       ORDER BY ordinal_position`
     );
 
-    return { tables, schools };
+    // Lista todos os usuários com schoolId para diagnóstico
+    const users = await this.dataSource.query(
+      `SELECT id, name, email, role, schoolId, isActive FROM user ORDER BY schoolId, id`
+    ).catch(() =>
+      this.dataSource.query(
+        `SELECT id, name, email, role, school_id, isActive FROM user ORDER BY school_id, id`
+      )
+    );
+
+    return { tables, schools, userColumns, users };
   }
 
   // TODO: remover antes do MVP

@@ -100,27 +100,30 @@ export class SecretaryService {
       overdueList.map(r => [Number(r.studentId), Number(r.overdueCount)]),
     );
 
-    // Busca frequência e situação de cada aluno
-    const attendanceRaw = await this.enrollmentRepository.manager.query(`
+    // Frequência por aluno — média ponderada de presenças
+    const attendanceRaw: any[] = await this.enrollmentRepository.manager.query(`
       SELECT
-        a.studentId,
-        ROUND(100.0 * SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) / COUNT(*), 0) as attendanceRate
-      FROM attendance a
-      WHERE a.schoolId = ?
-      GROUP BY a.studentId
+        studentId,
+        ROUND(100.0 * SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) / COUNT(*), 0) AS attendanceRate
+      FROM attendance
+      WHERE schoolId = ?
+      GROUP BY studentId
     `, [schoolId]);
     const attendanceMap = new Map<number, number>(
-      attendanceRaw.map((r: any) => [Number(r.studentId), Number(r.attendanceRate)])
+      attendanceRaw.map(r => [Number(r.studentId), Number(r.attendanceRate)])
     );
 
-    const gradesRaw = await this.enrollmentRepository.manager.query(`
-      SELECT studentId, AVG(value) as avg
+    // Média de notas por aluno — média ponderada (value * weight / sum_weight)
+    const gradesRaw: any[] = await this.enrollmentRepository.manager.query(`
+      SELECT
+        studentId,
+        ROUND(SUM(value * weight) / NULLIF(SUM(weight), 0), 2) AS avgGrade
       FROM grade
       WHERE schoolId = ?
       GROUP BY studentId
     `, [schoolId]);
     const gradesMap = new Map<number, number>(
-      gradesRaw.map((r: any) => [Number(r.studentId), Number(r.avg)])
+      gradesRaw.map(r => [Number(r.studentId), Number(r.avgGrade)])
     );
 
     return students.map(s => {

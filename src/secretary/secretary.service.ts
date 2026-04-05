@@ -100,13 +100,47 @@ export class SecretaryService {
       overdueList.map(r => [Number(r.studentId), Number(r.overdueCount)]),
     );
 
+    // Busca frequência e situação de cada aluno
+    const attendanceRaw = await this.enrollmentRepository.manager.query(`
+      SELECT
+        a.studentId,
+        ROUND(100.0 * SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) / COUNT(*), 0) as attendanceRate
+      FROM attendance a
+      WHERE a.schoolId = ?
+      GROUP BY a.studentId
+    `, [schoolId]);
+    const attendanceMap = new Map<number, number>(
+      attendanceRaw.map((r: any) => [Number(r.studentId), Number(r.attendanceRate)])
+    );
+
+    const gradesRaw = await this.enrollmentRepository.manager.query(`
+      SELECT studentId, AVG(value) as avg
+      FROM grade
+      WHERE schoolId = ?
+      GROUP BY studentId
+    `, [schoolId]);
+    const gradesMap = new Map<number, number>(
+      gradesRaw.map((r: any) => [Number(r.studentId), Number(r.avg)])
+    );
+
     return students.map(s => {
       const enrollment = enrollmentMap.get(s.id);
+      const attendanceRate = attendanceMap.get(s.id) ?? null;
+      const avgGrade = gradesMap.get(s.id) ?? null;
+
+      let situation: string | null = null;
+      if (avgGrade !== null) {
+        if (avgGrade >= 7) situation = 'APPROVED';
+        else if (avgGrade >= 5) situation = 'RECOVERY';
+        else situation = 'FAILED';
+      }
+
       return {
         id: s.id,
         name: s.name,
         email: s.email,
         phone: s.phone,
+        isActive: s.isActive,
         createdAt: s.createdAt,
         address: s.address,
         city: s.city,
@@ -121,6 +155,8 @@ export class SecretaryService {
           ? { id: enrollment.schoolClass.id, name: enrollment.schoolClass.name }
           : null,
         classId: enrollment?.classId ?? null,
+        attendanceRate,
+        situation,
         financialStatus: overdueMap.has(s.id) ? 'overdue' : 'ok',
         overdueCount: overdueMap.get(s.id) ?? 0,
       };

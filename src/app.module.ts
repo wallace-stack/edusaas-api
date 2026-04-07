@@ -45,29 +45,27 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
       useFactory: (config: ConfigService) => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const libsql = require('libsql');
-        const dbUrl = config.get<string>('TURSO_DATABASE_URL')
-          || process.env.TURSO_DATABASE_URL;
+
+        const baseUrl = config.get<string>('TURSO_DATABASE_URL')
+          || process.env.TURSO_DATABASE_URL || '';
         const authToken = config.get<string>('TURSO_AUTH_TOKEN')
-          || process.env.TURSO_AUTH_TOKEN;
+          || process.env.TURSO_AUTH_TOKEN || '';
 
-        console.log('DB URL:', dbUrl ? 'OK' : 'MISSING');
-        console.log('AUTH TOKEN:', authToken ? `OK (${authToken.length} chars)` : 'MISSING');
+        // Monta a URL com o token embutido — forma correta para o libsql
+        const dbUrl = authToken
+          ? `${baseUrl}?authToken=${authToken}`
+          : baseUrl;
 
-        const allEnvKeys = Object.keys(process.env).filter(k => k.includes('TURSO'));
-        console.log('=== TURSO ENV DEBUG ===');
-        console.log('Keys encontradas:', allEnvKeys);
-        console.log('TURSO_DATABASE_URL length:', (process.env.TURSO_DATABASE_URL || '').length);
-        console.log('TURSO_AUTH_TOKEN length:', (process.env.TURSO_AUTH_TOKEN || '').length);
-        console.log('TURSO_AUTH_TOKEN primeiros 20 chars:', (process.env.TURSO_AUTH_TOKEN || '').substring(0, 20));
-        console.log('======================');
+        console.log('=== TURSO CONFIG ===');
+        console.log('BASE URL:', baseUrl ? baseUrl.substring(0, 40) : 'MISSING');
+        console.log('TOKEN:', authToken ? `OK (${authToken.length} chars)` : 'MISSING');
+        console.log('FINAL URL length:', dbUrl.length);
+        console.log('===================');
 
         return {
           type: 'better-sqlite3' as any,
           driver: libsql,
           database: dbUrl,
-          driverOptions: {
-            authToken: authToken,
-          },
           synchronize: true,
           logging: false,
           autoLoadEntities: true,

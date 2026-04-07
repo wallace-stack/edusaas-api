@@ -53,6 +53,14 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
         console.log('DB URL:', dbUrl ? 'OK' : 'MISSING');
         console.log('AUTH TOKEN:', authToken ? `OK (${authToken.length} chars)` : 'MISSING');
 
+        const allEnvKeys = Object.keys(process.env).filter(k => k.includes('TURSO'));
+        console.log('=== TURSO ENV DEBUG ===');
+        console.log('Keys encontradas:', allEnvKeys);
+        console.log('TURSO_DATABASE_URL length:', (process.env.TURSO_DATABASE_URL || '').length);
+        console.log('TURSO_AUTH_TOKEN length:', (process.env.TURSO_AUTH_TOKEN || '').length);
+        console.log('TURSO_AUTH_TOKEN primeiros 20 chars:', (process.env.TURSO_AUTH_TOKEN || '').substring(0, 20));
+        console.log('======================');
+
         return {
           type: 'better-sqlite3' as any,
           driver: libsql,

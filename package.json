@@ -41,6 +41,7 @@
     "class-validator": "^0.15.1",
     "cloudinary": "^2.9.0",
     "helmet": "^8.1.0",
+    "libsql": "^0.5.29",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.2",
     "passport": "^0.7.0",

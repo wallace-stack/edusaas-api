@@ -42,18 +42,21 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     MailModule,
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        type: 'better-sqlite3' as any,
-        driver: require('libsql'),
-        database: config.get('TURSO_DATABASE_URL'),
-        driverOptions: {
-          authToken: config.get('TURSO_AUTH_TOKEN'),
-        },
-        synchronize: true,
-        logging: false,
-        autoLoadEntities: true,
-      }),
+      useFactory: (config: ConfigService) => {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const libsql = require('libsql');
+        return {
+          type: 'better-sqlite3' as any,
+          driver: libsql,
+          database: config.get<string>('TURSO_DATABASE_URL'),
+          driverOptions: {
+            authToken: config.get<string>('TURSO_AUTH_TOKEN'),
+          },
+          synchronize: true,
+          logging: false,
+          autoLoadEntities: true,
+        } as any;
+      },
       inject: [ConfigService],
     }),
     SchoolsModule,

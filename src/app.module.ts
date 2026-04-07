@@ -43,15 +43,13 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
     MailModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'mysql',
-        host: configService.get('DB_HOST'),
-        port: +configService.get<number>('DB_PORT', 3306),
-        username: configService.get('DB_USERNAME'),
-        password: configService.get('DB_PASSWORD'),
-        database: configService.get('DB_DATABASE'),
-        entities: [School, User, SchoolClass, SchoolSubject, Grade, Attendance, Notification, Tuition, CashFlow, FeedPost, Enrollment],
+      useFactory: (config: ConfigService) => ({
+        type: 'libsql' as any,
+        url: config.get('TURSO_DATABASE_URL'),
+        authToken: config.get('TURSO_AUTH_TOKEN'),
         synchronize: true,
+        logging: false,
+        autoLoadEntities: true,
       }),
       inject: [ConfigService],
     }),

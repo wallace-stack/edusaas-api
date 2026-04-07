@@ -22,6 +22,7 @@
     "db:sync": "ts-node -r tsconfig-paths/register src/database/migrations/run-sync.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.2",
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",

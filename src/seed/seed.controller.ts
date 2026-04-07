@@ -66,10 +66,10 @@ export class SeedController {
       `DELETE FROM user WHERE email = 'erikacarolinajunqueiradasilva@gmail.com'`
     );
 
-    // Insere a diretora do zero
+    // Insere a diretora do zero (datetime('now') compatível com SQLite)
     await this.dataSource.query(
       `INSERT INTO user (name, email, password, role, schoolId, isActive, createdAt, updatedAt)
-       VALUES (?, ?, ?, 'director', ?, 1, NOW(), NOW())`,
+       VALUES (?, ?, ?, 'director', ?, 1, datetime('now'), datetime('now'))`,
       ['Érika Junqueira', 'erikacarolinajunqueiradasilva@gmail.com', newHash, schoolId]
     );
 
@@ -86,24 +86,17 @@ export class SeedController {
   async dbInfo(@Query('token') token: string) {
     if (token !== SEED_TOKEN) throw new ForbiddenException('Token inválido.');
 
+    // SQLite: lista tabelas via sqlite_master
     const tables = await this.dataSource.query(
-      `SELECT table_name, table_rows
-       FROM information_schema.tables
-       WHERE table_schema = DATABASE()
-       ORDER BY table_name`
+      `SELECT name as table_name FROM sqlite_master WHERE type='table' ORDER BY name`
     );
 
     const schools = await this.dataSource.query(`SELECT id, name FROM school`);
 
-    // Mostra as colunas REAIS da tabela user
-    const userColumns = await this.dataSource.query(
-      `SELECT column_name, data_type
-       FROM information_schema.columns
-       WHERE table_schema = DATABASE() AND table_name = 'user'
-       ORDER BY ordinal_position`
-    );
+    // SQLite: colunas reais via PRAGMA
+    const userColumns = await this.dataSource.query(`PRAGMA table_info(user)`);
 
-    // Lista todos os usuários com schoolId para diagnóstico
+    // Lista todos os usuários para diagnóstico
     const users = await this.dataSource.query(
       `SELECT id, name, email, role, schoolId, isActive FROM user ORDER BY schoolId, id`
     ).catch(() =>
@@ -132,45 +125,41 @@ export class SeedController {
 
     const log: string[] = [];
 
-    await this.dataSource.query(`SET FOREIGN_KEY_CHECKS = 0`);
-    try {
-      for (const school of oldSchools) {
-        const sid = school.id;
-        log.push(`Removendo "${school.name}" (ID ${sid})`);
+    // SQLite não usa FOREIGN_KEY_CHECKS — deletar na ordem certa
+    for (const school of oldSchools) {
+      const sid = school.id;
+      log.push(`Removendo "${school.name}" (ID ${sid})`);
 
-        // Nomes exatos confirmados pelo db-info
-        const tabelas = [
-          'attendance',
-          'grade',
-          'enrollments',
-          'feed_posts',
-          'notification',
-          'subjects',
-          'school_class',
-          'user',
-        ];
+      const tabelas = [
+        'attendance',
+        'grade',
+        'enrollments',
+        'feed_posts',
+        'notification',
+        'subjects',
+        'school_class',
+        'tuition',
+        'cash_flow',
+        'user',
+      ];
 
-        for (const tbl of tabelas) {
-          try {
-            // Tenta schoolId (camelCase) e school_id (snake_case)
-            const r = await this.dataSource.query(
-              `DELETE FROM \`${tbl}\` WHERE schoolId = ?`, [sid]
-            ).catch(() =>
-              this.dataSource.query(
-                `DELETE FROM \`${tbl}\` WHERE school_id = ?`, [sid]
-              )
-            );
-            log.push(`  ✅ ${tbl}: ${r.affectedRows ?? '?'} linhas removidas`);
-          } catch (e: any) {
-            log.push(`  ⚠️ ${tbl}: ${e.message}`);
-          }
+      for (const tbl of tabelas) {
+        try {
+          const r = await this.dataSource.query(
+            `DELETE FROM "${tbl}" WHERE schoolId = ?`, [sid]
+          ).catch(() =>
+            this.dataSource.query(
+              `DELETE FROM "${tbl}" WHERE school_id = ?`, [sid]
+            )
+          );
+          log.push(`  ✅ ${tbl}: ${r.changes ?? r.affectedRows ?? '?'} linhas removidas`);
+        } catch (e: any) {
+          log.push(`  ⚠️ ${tbl}: ${e.message}`);
         }
-
-        await this.dataSource.query(`DELETE FROM school WHERE id = ?`, [sid]);
-        log.push(`✅ Escola ID ${sid} deletada`);
       }
-    } finally {
-      await this.dataSource.query(`SET FOREIGN_KEY_CHECKS = 1`);
+
+      await this.dataSource.query(`DELETE FROM school WHERE id = ?`, [sid]);
+      log.push(`✅ Escola ID ${sid} deletada`);
     }
 
     return { success: true, removed: oldSchools.length, log };

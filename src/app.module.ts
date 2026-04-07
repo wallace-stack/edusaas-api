@@ -65,6 +65,13 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
           synchronize: true,
           logging: false,
           autoLoadEntities: true,
+          // prepareDatabase permite acessar a instância do banco após criação
+          prepareDatabase: (db: any) => {
+            console.log('prepareDatabase called, db type:', typeof db);
+            if (db && typeof db.exec === 'function') {
+              console.log('DB instance ok');
+            }
+          },
         } as any;
       },
       inject: [ConfigService],

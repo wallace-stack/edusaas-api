@@ -46,32 +46,27 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const libsql = require('libsql');
 
-        const database = config.get<string>('TURSO_DATABASE_URL')
+        const remoteUrl = config.get<string>('TURSO_DATABASE_URL')
           || process.env.TURSO_DATABASE_URL || '';
         const authToken = config.get<string>('TURSO_AUTH_TOKEN')
           || process.env.TURSO_AUTH_TOKEN || '';
 
-        console.log('=== TURSO CONFIG ===');
-        console.log('DATABASE:', database ? database.substring(0, 40) : 'MISSING');
-        console.log('TOKEN:', authToken ? `OK (${authToken.length} chars)` : 'MISSING');
-        console.log('===================');
+        console.log('TURSO remoteUrl:', remoteUrl.substring(0, 40));
+        console.log('TURSO authToken length:', authToken.length);
 
-        // libsql: new Database(url, { authToken }) — driverOptions é o segundo argumento
         return {
           type: 'better-sqlite3' as any,
           driver: libsql,
-          database,
-          driverOptions: { authToken },
+          // Usar arquivo local como réplica com sync remoto
+          database: ':memory:',
+          driverOptions: {
+            syncUrl: remoteUrl,
+            authToken: authToken,
+            syncInterval: 60,
+          },
           synchronize: true,
           logging: false,
           autoLoadEntities: true,
-          // prepareDatabase permite acessar a instância do banco após criação
-          prepareDatabase: (db: any) => {
-            console.log('prepareDatabase called, db type:', typeof db);
-            if (db && typeof db.exec === 'function') {
-              console.log('DB instance ok');
-            }
-          },
         } as any;
       },
       inject: [ConfigService],

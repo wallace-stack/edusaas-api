@@ -46,26 +46,22 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const libsql = require('libsql');
 
-        const baseUrl = config.get<string>('TURSO_DATABASE_URL')
+        const database = config.get<string>('TURSO_DATABASE_URL')
           || process.env.TURSO_DATABASE_URL || '';
         const authToken = config.get<string>('TURSO_AUTH_TOKEN')
           || process.env.TURSO_AUTH_TOKEN || '';
 
-        // Monta a URL com o token embutido — forma correta para o libsql
-        const dbUrl = authToken
-          ? `${baseUrl}?authToken=${authToken}`
-          : baseUrl;
-
         console.log('=== TURSO CONFIG ===');
-        console.log('BASE URL:', baseUrl ? baseUrl.substring(0, 40) : 'MISSING');
+        console.log('DATABASE:', database ? database.substring(0, 40) : 'MISSING');
         console.log('TOKEN:', authToken ? `OK (${authToken.length} chars)` : 'MISSING');
-        console.log('FINAL URL length:', dbUrl.length);
         console.log('===================');
 
+        // libsql: new Database(url, { authToken }) — driverOptions é o segundo argumento
         return {
           type: 'better-sqlite3' as any,
           driver: libsql,
-          database: dbUrl,
+          database,
+          driverOptions: { authToken },
           synchronize: true,
           logging: false,
           autoLoadEntities: true,

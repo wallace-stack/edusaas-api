@@ -45,12 +45,20 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
       useFactory: (config: ConfigService) => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const libsql = require('libsql');
+        const dbUrl = config.get<string>('TURSO_DATABASE_URL')
+          || process.env.TURSO_DATABASE_URL;
+        const authToken = config.get<string>('TURSO_AUTH_TOKEN')
+          || process.env.TURSO_AUTH_TOKEN;
+
+        console.log('DB URL:', dbUrl ? 'OK' : 'MISSING');
+        console.log('AUTH TOKEN:', authToken ? `OK (${authToken.length} chars)` : 'MISSING');
+
         return {
           type: 'better-sqlite3' as any,
           driver: libsql,
-          database: config.get<string>('TURSO_DATABASE_URL'),
+          database: dbUrl,
           driverOptions: {
-            authToken: config.get<string>('TURSO_AUTH_TOKEN'),
+            authToken: authToken,
           },
           synchronize: true,
           logging: false,

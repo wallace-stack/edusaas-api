@@ -5,12 +5,9 @@ import { runDemoSeed } from './demo.seed';
 dotenv.config();
 
 const dataSource = new DataSource({
-  type: 'mysql',
-  host: process.env.DB_HOST,
-  port: +(process.env.DB_PORT ?? 3306),
-  username: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE,
+  type: 'postgres',
+  url: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
   entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
   synchronize: false,
 });

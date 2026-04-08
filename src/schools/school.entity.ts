@@ -62,11 +62,11 @@ export class School {
   planStatus!: PlanStatus;
 
   /** Data de término do trial (createdAt + 14 dias). */
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   trialEndsAt!: Date;
 
   /** Data em que o plano pago foi ativado pela primeira vez. */
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   planActivatedAt!: Date;
 
   @CreateDateColumn()

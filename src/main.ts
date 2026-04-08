@@ -4,12 +4,6 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 
 async function bootstrap() {
-  console.log('=== APP STARTING ===');
-  console.log('BUILD_TIMESTAMP:', process.env.BUILD_TIMESTAMP || 'não definido');
-  console.log('TURSO_DATABASE_URL:', process.env.TURSO_DATABASE_URL ? 'OK (' + process.env.TURSO_DATABASE_URL.substring(0, 30) + '...)' : 'MISSING');
-  console.log('TURSO_AUTH_TOKEN:', process.env.TURSO_AUTH_TOKEN ? 'OK (' + process.env.TURSO_AUTH_TOKEN.length + ' chars)' : 'MISSING');
-  console.log('===================');
-
   const app = await NestFactory.create(AppModule);
 
   app.useGlobalPipes(new ValidationPipe({

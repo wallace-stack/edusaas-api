@@ -42,33 +42,14 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     MailModule,
     TypeOrmModule.forRootAsync({
-      useFactory: (config: ConfigService) => {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const libsql = require('libsql');
-
-        const remoteUrl = config.get<string>('TURSO_DATABASE_URL')
-          || process.env.TURSO_DATABASE_URL || '';
-        const authToken = config.get<string>('TURSO_AUTH_TOKEN')
-          || process.env.TURSO_AUTH_TOKEN || '';
-
-        console.log('TURSO remoteUrl:', remoteUrl.substring(0, 40));
-        console.log('TURSO authToken length:', authToken.length);
-
-        return {
-          type: 'better-sqlite3' as any,
-          driver: libsql,
-          // Usar arquivo local como réplica com sync remoto
-          database: ':memory:',
-          driverOptions: {
-            syncUrl: remoteUrl,
-            authToken: authToken,
-            syncInterval: 60,
-          },
-          synchronize: true,
-          logging: false,
-          autoLoadEntities: true,
-        } as any;
-      },
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        url: config.get<string>('DATABASE_URL'),
+        synchronize: true,
+        logging: false,
+        autoLoadEntities: true,
+        ssl: { rejectUnauthorized: false },
+      }),
       inject: [ConfigService],
     }),
     SchoolsModule,

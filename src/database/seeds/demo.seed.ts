@@ -252,6 +252,7 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
 
       // Chamadas — dias úteis dos últimos 30 dias corridos
       const absentSet = buildAbsentIndices(workingDays.length, def.attendanceRate);
+      const attendanceRecords: Partial<Attendance>[] = [];
       for (const subj of turmaSubjects) {
         const existingAttCount = await qr.manager.count(Attendance, {
           where: { studentId: aluno.id, subjectId: subj.id, classId: def.turma.id, schoolId: school.id },
@@ -261,13 +262,25 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
         for (let i = 0; i < workingDays.length; i++) {
           const date = workingDays[i];
           const status = absentSet.has(i) ? AttendanceStatus.ABSENT : AttendanceStatus.PRESENT;
-          await qr.manager.save(Attendance, qr.manager.create(Attendance, {
+          attendanceRecords.push({
             studentId: aluno.id, subjectId: subj.id, classId: def.turma.id,
             schoolId: school.id, date, status,
-          }));
+          });
           totalAttendance++;
           if (status === AttendanceStatus.PRESENT) totalPresent++;
         }
+      }
+
+      // Inserir em lotes de 50 para não ultrapassar o statement timeout do Supabase
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < attendanceRecords.length; i += BATCH_SIZE) {
+        const batch = attendanceRecords.slice(i, i + BATCH_SIZE);
+        await qr.manager
+          .createQueryBuilder()
+          .insert()
+          .into(Attendance)
+          .values(batch)
+          .execute();
       }
     }
 

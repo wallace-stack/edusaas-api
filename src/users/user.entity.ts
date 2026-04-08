@@ -72,7 +72,7 @@ export class User {
   resetToken: string;
 
   // Expiração do token de reset (1 hora)
-  @Column({ nullable: true, type: 'datetime' })
+  @Column({ nullable: true, type: 'timestamp' })
   resetTokenExpiry: Date;
 
   @ManyToOne(() => School, { eager: false })

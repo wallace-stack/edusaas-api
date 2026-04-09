@@ -51,46 +51,26 @@ export class SeedController {
   async resetDirector(@Query('token') token: string) {
     if (token !== SEED_TOKEN) throw new ForbiddenException('Token inválido.');
 
-    const bcrypt = await import('bcrypt');
-    const newHash = await bcrypt.hash('Horizonte@2026', 10);
-
-    // Pega o ID do Colégio Horizonte
-    const school = await this.dataSource.query(
-      `SELECT id FROM school WHERE name = 'Colégio Horizonte' LIMIT 1`
-    );
-    if (!school.length) return { success: false, message: 'Escola não encontrada.' };
-    const schoolId = school[0].id;
-
     const email = 'erikacarolinajunqueiradasilva@gmail.com';
+    const bcrypt = require('bcrypt');
+    const hash = await bcrypt.hash('Horizonte@2026', 10);
 
-    // Pega o ID do usuário existente
-    const existing = await this.dataSource.query(
-      `SELECT id FROM "user" WHERE email = $1`,
-      [email]
-    );
-
-    if (existing.length > 0) {
-      const userId = existing[0].id;
-
-      // Deleta em ordem correta respeitando FKs para "user"
-      await this.dataSource.query(`DELETE FROM "notification" WHERE "createdById" = $1`, [userId]);
-      await this.dataSource.query(`DELETE FROM "feed_posts" WHERE "authorId" = $1`, [userId]);
-      await this.dataSource.query(`DELETE FROM "cash_flow" WHERE "createdById" = $1`, [userId]);
-      await this.dataSource.query(`DELETE FROM "user" WHERE id = $1`, [userId]);
-    }
-
+    // Só faz UPDATE da senha — sem DELETE, sem problemas de FK
     await this.dataSource.query(
-      `INSERT INTO "user" (name, email, password, role, "schoolId", "isActive", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, 'director', $4, true, NOW(), NOW())`,
-      ['Érika Junqueira', email, newHash, schoolId]
+      `UPDATE "user" SET password = $1 WHERE email = $2`,
+      [hash, email]
     );
 
     const user = await this.dataSource.query(
-      `SELECT id, email, role, "schoolId", "isActive" FROM "user" WHERE email = $1 LIMIT 1`,
+      `SELECT id, email, role FROM "user" WHERE email = $1`,
       [email]
     );
 
-    return { success: true, user: user[0], message: 'Diretora criada com senha Horizonte@2026' };
+    return {
+      success: true,
+      message: 'Senha da diretora atualizada com sucesso.',
+      user: user[0],
+    };
   }
 
   // TODO: remover antes do MVP

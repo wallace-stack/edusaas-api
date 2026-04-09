@@ -41,7 +41,6 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     MailModule,
-    // rebuild: 2026-04-09
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
@@ -50,6 +49,9 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
         logging: false,
         autoLoadEntities: true,
         ssl: { rejectUnauthorized: false },
+        extra: {
+          family: 4, // Força IPv4, evita tentativa de IPv6
+        },
       }),
       inject: [ConfigService],
     }),

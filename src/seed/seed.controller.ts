@@ -61,21 +61,29 @@ export class SeedController {
     if (!school.length) return { success: false, message: 'Escola não encontrada.' };
     const schoolId = school[0].id;
 
-    // Deleta qualquer versão existente do email (duplicatas)
+    const email = 'erikacarolinajunqueiradasilva@gmail.com';
+
+    // Deleta dependências com FK para "user" antes de deletar o usuário
     await this.dataSource.query(
-      `DELETE FROM "user" WHERE email = 'erikacarolinajunqueiradasilva@gmail.com'`
+      `DELETE FROM "notification" WHERE "createdById" IN (SELECT id FROM "user" WHERE email = $1)`,
+      [email]
     );
 
-    // Insere a diretora do zero (datetime('now') compatível com SQLite)
+    // Deleta qualquer versão existente do email (duplicatas)
+    await this.dataSource.query(
+      `DELETE FROM "user" WHERE email = $1`,
+      [email]
+    );
+
     await this.dataSource.query(
       `INSERT INTO "user" (name, email, password, role, "schoolId", "isActive", "createdAt", "updatedAt")
        VALUES ($1, $2, $3, 'director', $4, true, NOW(), NOW())`,
-      ['Érika Junqueira', 'erikacarolinajunqueiradasilva@gmail.com', newHash, schoolId]
+      ['Érika Junqueira', email, newHash, schoolId]
     );
 
     const user = await this.dataSource.query(
-      `SELECT id, email, role, "schoolId", "isActive" FROM "user"
-       WHERE email = 'erikacarolinajunqueiradasilva@gmail.com' LIMIT 1`
+      `SELECT id, email, role, "schoolId", "isActive" FROM "user" WHERE email = $1 LIMIT 1`,
+      [email]
     );
 
     return { success: true, user: user[0], message: 'Diretora criada com senha Horizonte@2026' };

@@ -63,17 +63,21 @@ export class SeedController {
 
     const email = 'erikacarolinajunqueiradasilva@gmail.com';
 
-    // Deleta dependências com FK para "user" antes de deletar o usuário
-    await this.dataSource.query(
-      `DELETE FROM "notification" WHERE "createdById" IN (SELECT id FROM "user" WHERE email = $1)`,
+    // Pega o ID do usuário existente
+    const existing = await this.dataSource.query(
+      `SELECT id FROM "user" WHERE email = $1`,
       [email]
     );
 
-    // Deleta qualquer versão existente do email (duplicatas)
-    await this.dataSource.query(
-      `DELETE FROM "user" WHERE email = $1`,
-      [email]
-    );
+    if (existing.length > 0) {
+      const userId = existing[0].id;
+
+      // Deleta em ordem correta respeitando FKs para "user"
+      await this.dataSource.query(`DELETE FROM "notification" WHERE "createdById" = $1`, [userId]);
+      await this.dataSource.query(`DELETE FROM "feed_posts" WHERE "authorId" = $1`, [userId]);
+      await this.dataSource.query(`DELETE FROM "cash_flow" WHERE "createdById" = $1`, [userId]);
+      await this.dataSource.query(`DELETE FROM "user" WHERE id = $1`, [userId]);
+    }
 
     await this.dataSource.query(
       `INSERT INTO "user" (name, email, password, role, "schoolId", "isActive", "createdAt", "updatedAt")

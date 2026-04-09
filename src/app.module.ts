@@ -41,7 +41,7 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     MailModule,
-    // rebuild: 2026-04-08
+    // rebuild: 2026-04-09
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => ({
         type: 'postgres',

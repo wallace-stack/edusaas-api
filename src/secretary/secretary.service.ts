@@ -103,11 +103,11 @@ export class SecretaryService {
     // Frequência por aluno — média ponderada de presenças
     const attendanceRaw: any[] = await this.enrollmentRepository.manager.query(`
       SELECT
-        studentId,
-        ROUND(100.0 * SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) / COUNT(*), 0) AS attendanceRate
+        "studentId",
+        ROUND(100.0 * SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) / COUNT(*), 0) AS "attendanceRate"
       FROM attendance
-      WHERE schoolId = ?
-      GROUP BY studentId
+      WHERE "schoolId" = $1
+      GROUP BY "studentId"
     `, [schoolId]);
     const attendanceMap = new Map<number, number>(
       attendanceRaw.map(r => [Number(r.studentId), Number(r.attendanceRate)])
@@ -116,14 +116,14 @@ export class SecretaryService {
     // Média de notas por aluno — média ponderada (value * weight / sum_weight)
     const gradesRaw: any[] = await this.enrollmentRepository.manager.query(`
       SELECT
-        studentId,
-        ROUND(SUM(value * weight) / NULLIF(SUM(weight), 0), 2) AS avgGrade
+        "studentId",
+        ROUND(SUM(value * weight) / NULLIF(SUM(weight), 0), 2) AS "avgGrade"
       FROM grade
-      WHERE schoolId = ?
-      GROUP BY studentId
+      WHERE "schoolId" = $1
+      GROUP BY "studentId"
     `, [schoolId]);
     const gradesMap = new Map<number, number>(
-      gradesRaw.map(r => [Number(r.studentId), Number(r.avgGrade)])
+      gradesRaw.map(r => [Number(r.studentId), Number(r.avgGrade ?? r.avggrade)])
     );
 
     return students.map(s => {

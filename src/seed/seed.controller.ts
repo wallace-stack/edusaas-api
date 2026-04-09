@@ -63,18 +63,18 @@ export class SeedController {
 
     // Deleta qualquer versão existente do email (duplicatas)
     await this.dataSource.query(
-      `DELETE FROM user WHERE email = 'erikacarolinajunqueiradasilva@gmail.com'`
+      `DELETE FROM "user" WHERE email = 'erikacarolinajunqueiradasilva@gmail.com'`
     );
 
     // Insere a diretora do zero (datetime('now') compatível com SQLite)
     await this.dataSource.query(
-      `INSERT INTO user (name, email, password, role, schoolId, isActive, createdAt, updatedAt)
-       VALUES (?, ?, ?, 'director', ?, 1, datetime('now'), datetime('now'))`,
+      `INSERT INTO "user" (name, email, password, role, "schoolId", "isActive", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, 'director', $4, true, NOW(), NOW())`,
       ['Érika Junqueira', 'erikacarolinajunqueiradasilva@gmail.com', newHash, schoolId]
     );
 
     const user = await this.dataSource.query(
-      `SELECT id, email, role, schoolId, isActive FROM user
+      `SELECT id, email, role, "schoolId", "isActive" FROM "user"
        WHERE email = 'erikacarolinajunqueiradasilva@gmail.com' LIMIT 1`
     );
 
@@ -98,10 +98,10 @@ export class SeedController {
 
     // Lista todos os usuários para diagnóstico
     const users = await this.dataSource.query(
-      `SELECT id, name, email, role, schoolId, isActive FROM user ORDER BY schoolId, id`
+      `SELECT id, name, email, role, "schoolId", "isActive" FROM "user" ORDER BY "schoolId", id`
     ).catch(() =>
       this.dataSource.query(
-        `SELECT id, name, email, role, school_id, isActive FROM user ORDER BY school_id, id`
+        `SELECT id, name, email, role, "schoolId", "isActive" FROM "user" ORDER BY "schoolId", id`
       )
     );
 

@@ -78,15 +78,15 @@ export class SeedController {
   async dbInfo(@Query('token') token: string) {
     if (token !== SEED_TOKEN) throw new ForbiddenException('Token inválido.');
 
-    // SQLite: lista tabelas via sqlite_master
     const tables = await this.dataSource.query(
-      `SELECT name as table_name FROM sqlite_master WHERE type='table' ORDER BY name`
+      `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`
     );
 
     const schools = await this.dataSource.query(`SELECT id, name FROM school`);
 
-    // SQLite: colunas reais via PRAGMA
-    const userColumns = await this.dataSource.query(`PRAGMA table_info(user)`);
+    const userColumns = await this.dataSource.query(
+      `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'user' AND table_schema = 'public' ORDER BY ordinal_position`
+    );
 
     // Lista todos os usuários para diagnóstico
     const users = await this.dataSource.query(

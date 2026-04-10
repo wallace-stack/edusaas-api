@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SchoolClass } from './class.entity';
 import { SchoolSubject } from './subject.entity';
+import { Enrollment, EnrollmentStatus } from '../enrollment/enrollment.entity';
 import { CreateClassDto } from './dto/create-class.dto';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 
@@ -33,12 +34,11 @@ export class ClassesService {
     const results: any[] = [];
     for (const c of classes) {
       const count = await this.classesRepository.manager
-        .createQueryBuilder()
+        .createQueryBuilder(Enrollment, 'e')
         .select('COUNT(*)', 'total')
-        .from('enrollment', 'e')
         .where('e.classId = :classId', { classId: c.id })
         .andWhere('e.year = :year', { year: currentYear })
-        .andWhere('e.status = :status', { status: 'active' })
+        .andWhere('e.status = :status', { status: EnrollmentStatus.ACTIVE })
         .getRawOne();
 
       results.push({

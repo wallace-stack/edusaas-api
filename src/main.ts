@@ -2,6 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import * as http from 'http';
+
+// Servidor temporário para satisfazer o port scan do Render enquanto o DB conecta
+const PORT = process.env.PORT || 3000;
+const tempServer = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('starting...');
+});
+tempServer.listen(PORT);
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -40,6 +49,7 @@ async function bootstrap() {
     crossOriginEmbedderPolicy: false,
   }));
 
-  await app.listen(process.env.PORT || 3000);
+  tempServer.close();
+  await app.listen(PORT);
 }
 bootstrap();

@@ -44,14 +44,20 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        url: config.get<string>('DATABASE_URL') || process.env.DATABASE_URL,
+        url: config.get<string>('DATABASE_URL'),
         synchronize: true,
         logging: false,
         autoLoadEntities: true,
         ssl: { rejectUnauthorized: false },
         extra: {
-          family: 4, // Força IPv4, evita tentativa de IPv6
+          family: 4,
+          connectionTimeoutMillis: 10000,
+          idleTimeoutMillis: 30000,
+          max: 3,
         },
+        retryAttempts: 10,
+        retryDelay: 5000,
+        connectTimeoutMS: 10000,
       }),
       inject: [ConfigService],
     }),

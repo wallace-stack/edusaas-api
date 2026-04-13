@@ -303,6 +303,13 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
       }
     }
 
+    // ── Verificação pós-seed ──────────────────────────────────────────────────
+    const verificacao = await qr.manager.findOne(User, {
+      where: { email: 'alice.oliveira@aluno.horizonte.com' },
+      select: ['name', 'phone', 'document', 'address', 'guardianName'],
+    });
+    console.log('VERIFICACAO ALICE:', JSON.stringify(verificacao));
+
     // ── Notificações ──────────────────────────────────────────────────────────
     const notifsDefs = [
       {

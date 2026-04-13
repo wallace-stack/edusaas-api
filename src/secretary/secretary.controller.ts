@@ -45,6 +45,15 @@ export class SecretaryController {
     return this.secretaryService.enrollStudent(dto, user.schoolId);
   }
 
+  // Listar alunos de uma turma com dados pessoais completos
+  @Get('classes/:classId/students')
+  getStudentsByClass(
+    @Param('classId', ParseIntPipe) classId: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.secretaryService.getStudentsByClass(classId, user.schoolId);
+  }
+
   // Listar turmas
   @Get('classes')
   listClasses(@CurrentUser() user: any) {

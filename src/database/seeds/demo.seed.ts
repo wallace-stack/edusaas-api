@@ -120,10 +120,7 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
     async function upsertUser(data: Partial<User>): Promise<User> {
       const found = await qr.manager.findOne(User, { where: { email: data.email! } });
       if (found) {
-        found.schoolId = data.schoolId!;
-        found.password = data.password!;
-        found.role = data.role!;
-        found.isActive = true;
+        Object.assign(found, data, { isActive: true });
         return qr.manager.save(User, found);
       }
       return qr.manager.save(User, qr.manager.create(User, { ...data, isActive: true }));

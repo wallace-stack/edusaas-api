@@ -325,6 +325,35 @@ export class SecretaryService {
     return safe;
   }
 
+  // Lista alunos de uma turma com dados pessoais completos
+  async getStudentsByClass(classId: number, schoolId: number): Promise<any[]> {
+    const currentYear = new Date().getFullYear();
+    const enrollments = await this.enrollmentRepository.find({
+      where: { classId, schoolId, year: currentYear, status: EnrollmentStatus.ACTIVE },
+      relations: ['student'],
+      order: { student: { name: 'ASC' } } as any,
+    });
+    return enrollments
+      .filter(e => e.student)
+      .map(e => ({
+        id: e.student.id,
+        name: e.student.name,
+        email: e.student.email,
+        phone: e.student.phone ?? null,
+        document: (e.student as any).document ?? null,
+        birthDate: (e.student as any).birthDate ?? null,
+        address: e.student.address ?? null,
+        addressNumber: e.student.addressNumber ?? null,
+        city: e.student.city ?? null,
+        state: e.student.state ?? null,
+        zipCode: e.student.zipCode ?? null,
+        guardianName: e.student.guardianName ?? null,
+        guardianPhone: e.student.guardianPhone ?? null,
+        guardianRelation: e.student.guardianRelation ?? null,
+        isActive: e.student.isActive,
+      }));
+  }
+
   // Desativa usuário — impede desativar diretor
   async deactivateUser(id: number, schoolId: number): Promise<{ message: string }> {
     const user = await this.usersRepository.findOne({ where: { id, schoolId } });

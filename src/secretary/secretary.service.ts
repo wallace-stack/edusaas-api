@@ -334,7 +334,7 @@ export class SecretaryService {
         u.city, u.state, u."zipCode",
         u."guardianName", u."guardianPhone", u."guardianRelation",
         u."isActive"
-       FROM enrollment e
+       FROM "enrollments" e
        JOIN "user" u ON u.id = e."studentId"
        WHERE e."classId" = $1 AND u."schoolId" = $2
        ORDER BY u.name`,

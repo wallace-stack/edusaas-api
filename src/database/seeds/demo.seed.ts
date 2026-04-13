@@ -51,16 +51,17 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
     const existingSchool = await qr.manager.findOne(School, {
       where: { name: 'Colégio Horizonte' },
     });
+    let jaTemDados = false;
     if (existingSchool) {
       const studentCount = await qr.manager.count(User, {
         where: { schoolId: existingSchool.id, role: UserRole.STUDENT },
       });
       if (studentCount >= 25) {
-        console.log(`Demo seed já completo (escola ID ${existingSchool.id}, ${studentCount} alunos). Pulando.`);
-        await qr.rollbackTransaction();
-        return;
+        jaTemDados = true;
+        console.log(`Demo seed já completo (escola ID ${existingSchool.id}, ${studentCount} alunos). Atualizando campos pessoais...`);
+      } else {
+        console.log(`Escola encontrada (ID ${existingSchool.id}) mas com apenas ${studentCount} alunos — completando seed...`);
       }
-      console.log(`Escola encontrada (ID ${existingSchool.id}) mas com apenas ${studentCount} alunos — completando seed...`);
     }
 
     // ── Escola ────────────────────────────────────────────────────────────────
@@ -235,6 +236,8 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
         city: def.city, state: def.state, zipCode: def.zipCode,
         guardianName: def.guardianName, guardianPhone: def.guardianPhone, guardianRelation: def.guardianRelation,
       });
+
+      if (jaTemDados) continue;
 
       // Matrícula
       const existingEnrollment = await qr.manager.findOne(Enrollment, {

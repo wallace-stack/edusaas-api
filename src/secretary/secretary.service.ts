@@ -327,31 +327,19 @@ export class SecretaryService {
 
   // Lista alunos de uma turma com dados pessoais completos
   async getStudentsByClass(classId: number, schoolId: number): Promise<any[]> {
-    const currentYear = new Date().getFullYear();
-    const enrollments = await this.enrollmentRepository.find({
-      where: { classId, schoolId, year: currentYear, status: EnrollmentStatus.ACTIVE },
-      relations: ['student'],
-      order: { student: { name: 'ASC' } } as any,
-    });
-    return enrollments
-      .filter(e => e.student)
-      .map(e => ({
-        id: e.student.id,
-        name: e.student.name,
-        email: e.student.email,
-        phone: e.student.phone ?? null,
-        document: (e.student as any).document ?? null,
-        birthDate: (e.student as any).birthDate ?? null,
-        address: e.student.address ?? null,
-        addressNumber: e.student.addressNumber ?? null,
-        city: e.student.city ?? null,
-        state: e.student.state ?? null,
-        zipCode: e.student.zipCode ?? null,
-        guardianName: e.student.guardianName ?? null,
-        guardianPhone: e.student.guardianPhone ?? null,
-        guardianRelation: e.student.guardianRelation ?? null,
-        isActive: e.student.isActive,
-      }));
+    return this.enrollmentRepository.manager.query(
+      `SELECT
+        u.id, u.name, u.email, u.phone, u.document,
+        u."birthDate", u.address, u."addressNumber",
+        u.city, u.state, u."zipCode",
+        u."guardianName", u."guardianPhone", u."guardianRelation",
+        u."isActive"
+       FROM enrollment e
+       JOIN "user" u ON u.id = e."studentId"
+       WHERE e."classId" = $1 AND u."schoolId" = $2
+       ORDER BY u.name`,
+      [classId, schoolId],
+    );
   }
 
   // Desativa usuário — impede desativar diretor

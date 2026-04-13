@@ -26,6 +26,13 @@ export class MetricsController {
     return this.metricsService.getCoordinatorDashboard(user.schoolId);
   }
 
+  // Dashboard financeiro do diretor
+  @Get('director/financial')
+  @Roles(UserRole.DIRECTOR)
+  getFinancialDashboard(@CurrentUser() user: any) {
+    return this.metricsService.getFinancialDashboard(user.schoolId);
+  }
+
   // Dashboard do professor
   @Get('teacher')
   @Roles(UserRole.TEACHER)

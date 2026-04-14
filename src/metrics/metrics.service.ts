@@ -133,11 +133,18 @@ export class MetricsService {
       studentGrades[g.studentId].push(Number(g.value));
     });
 
-    const atRiskStudents = Object.entries(studentGrades)
-      .filter(([_, values]: any) => {
-        const avg = values.reduce((a: number, b: number) => a + b, 0) / values.length;
-        return avg < 6;
-      }).length;
+    let atRiskStudents = 0;
+    let approvedStudents = 0;
+    let recoveryStudents = 0;
+    let failedStudents = 0;
+    Object.values(studentGrades).forEach((values: any) => {
+      const avg = values.reduce((a: number, b: number) => a + b, 0) / values.length;
+      if (avg < 6) atRiskStudents++;
+      if (avg >= 7) approvedStudents++;
+      else if (avg >= 5) recoveryStudents++;
+      else failedStudents++;
+    });
+    const noGradesStudents = students.length - Object.keys(studentGrades).length;
 
     // Alunos com frequência irregular (abaixo de 75%)
     const studentAttendance: any = {};
@@ -173,6 +180,12 @@ export class MetricsService {
       atRiskStudents,
       irregularAttendance,
       classAttendance,
+      academicSituation: {
+        approved: approvedStudents,
+        recovery: recoveryStudents,
+        failed: failedStudents,
+        noGrades: noGradesStudents,
+      },
       alerts: {
         gradesAlert: atRiskStudents > 0 ? `${atRiskStudents} aluno(s) com média abaixo de 6` : null,
         attendanceAlert: irregularAttendance > 0 ? `${irregularAttendance} aluno(s) com frequência irregular` : null,
@@ -251,10 +264,12 @@ export class MetricsService {
         avgGrade: 0,
         totalAttendance: 0,
         avgAttendance: '0%',
+        classAttendance: [],
+        subjectAvgGrades: [],
       };
     }
 
-    const [grades, attendances] = await Promise.all([
+    const [grades, attendances, classAttendanceRaw, subjectGradesRaw] = await Promise.all([
       this.gradesRepository
         .createQueryBuilder('g')
         .where('g.schoolId = :schoolId', { schoolId })
@@ -265,6 +280,25 @@ export class MetricsService {
         .where('a.schoolId = :schoolId', { schoolId })
         .andWhere('a.classId IN (:...classIds)', { classIds })
         .getMany(),
+      this.attendanceRepository.manager.query(
+        `SELECT sc.name AS "className",
+                COUNT(*) AS total,
+                SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) AS present
+         FROM attendance a
+         JOIN school_class sc ON sc.id = a."classId"
+         WHERE a."schoolId" = $1 AND a."classId" = ANY($2::int[])
+         GROUP BY sc.name ORDER BY sc.name`,
+        [schoolId, classIds],
+      ),
+      this.gradesRepository.manager.query(
+        `SELECT ss.name AS "subjectName",
+                ROUND(AVG(g.value), 1) AS "avgGrade"
+         FROM grade g
+         JOIN school_subject ss ON ss.id = g."subjectId"
+         WHERE g."schoolId" = $1 AND ss."teacherId" = $2
+         GROUP BY ss.name ORDER BY ss.name`,
+        [schoolId, teacherId],
+      ),
     ]);
 
     const avgGrade = grades.length > 0
@@ -276,11 +310,23 @@ export class MetricsService {
       ? Math.round((presentCount / attendances.length) * 100)
       : 0;
 
+    const classAttendance = classAttendanceRaw.map((r: any) => ({
+      className: r.className,
+      avgRate: r.total > 0 ? Math.round((Number(r.present) / Number(r.total)) * 100) : 0,
+    }));
+
+    const subjectAvgGrades = subjectGradesRaw.map((r: any) => ({
+      subjectName: r.subjectName,
+      avgGrade: Number(r.avgGrade ?? 0),
+    }));
+
     return {
       totalGrades: grades.length,
       avgGrade,
       totalAttendance: attendances.length,
       avgAttendance: `${avgAttendance}%`,
+      classAttendance,
+      subjectAvgGrades,
     };
   }
 }

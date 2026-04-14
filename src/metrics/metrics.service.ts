@@ -62,6 +62,35 @@ export class MetricsService {
       ? Math.round((presentCount / attendances.length) * 100)
       : 0;
 
+    // Frequência irregular por aluno
+    const studentAttendance: any = {};
+    attendances.forEach(a => {
+      if (!studentAttendance[a.studentId]) studentAttendance[a.studentId] = { total: 0, present: 0 };
+      studentAttendance[a.studentId].total++;
+      if (a.status === AttendanceStatus.PRESENT) studentAttendance[a.studentId].present++;
+    });
+    const irregularStudents = Object.values(studentAttendance)
+      .filter((d: any) => d.total > 0 && (d.present / d.total) < 0.75).length;
+    const regularStudents = totalStudents - irregularStudents;
+
+    // Frequência por turma
+    const classAttendanceRaw: any[] = await this.attendanceRepository.manager.query(
+      `SELECT sc.name AS "className",
+              COUNT(*) AS total,
+              SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) AS present
+       FROM attendance a
+       JOIN school_class sc ON sc.id = a."classId"
+       WHERE a."schoolId" = $1
+       GROUP BY sc.name
+       ORDER BY sc.name`,
+      [schoolId],
+    );
+
+    const classAttendance = classAttendanceRaw.map(r => ({
+      className: r.className,
+      avgRate: r.total > 0 ? Math.round((Number(r.present) / Number(r.total)) * 100) : 0,
+    }));
+
     return {
       people: {
         totalStudents,
@@ -79,6 +108,12 @@ export class MetricsService {
         totalPaidTuitions: paidTuitions.length,
         totalOverdueTuitions: overdueTuitions.length,
         defaultRate: `${defaultRate}%`,
+      },
+      attendance: {
+        regularStudents,
+        irregularStudents,
+        avgRate: avgAttendance,
+        classAttendance,
       },
     };
   }
@@ -115,10 +150,29 @@ export class MetricsService {
     const irregularAttendance = Object.values(studentAttendance)
       .filter((data: any) => (data.present / data.total) < 0.75).length;
 
+    // Frequência por turma
+    const classAttendanceRaw: any[] = await this.attendanceRepository.manager.query(
+      `SELECT sc.name AS "className",
+              COUNT(*) AS total,
+              SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) AS present
+       FROM attendance a
+       JOIN school_class sc ON sc.id = a."classId"
+       WHERE a."schoolId" = $1
+       GROUP BY sc.name
+       ORDER BY sc.name`,
+      [schoolId],
+    );
+
+    const classAttendance = classAttendanceRaw.map(r => ({
+      className: r.className,
+      avgRate: r.total > 0 ? Math.round((Number(r.present) / Number(r.total)) * 100) : 0,
+    }));
+
     return {
       totalStudents: students.length,
       atRiskStudents,
       irregularAttendance,
+      classAttendance,
       alerts: {
         gradesAlert: atRiskStudents > 0 ? `${atRiskStudents} aluno(s) com média abaixo de 6` : null,
         attendanceAlert: irregularAttendance > 0 ? `${irregularAttendance} aluno(s) com frequência irregular` : null,

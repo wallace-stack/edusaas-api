@@ -16,17 +16,17 @@ export class CreateEnrollmentDto {
   @IsDateString()
   birthDate?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  address!: string;
+  address?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  city!: string;
+  city?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  state!: string;
+  state?: string;
 
   @IsOptional()
   @IsString()
@@ -40,17 +40,17 @@ export class CreateEnrollmentDto {
   @IsString()
   complement?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  guardianName!: string;
+  guardianName?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  guardianPhone!: string;
+  guardianPhone?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  guardianRelation!: string;
+  guardianRelation?: string;
 
   @IsOptional()
   @IsNumber()

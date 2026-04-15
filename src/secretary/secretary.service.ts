@@ -325,6 +325,105 @@ export class SecretaryService {
     return safe;
   }
 
+  // Importação em lote de alunos via CSV
+  async importStudents(
+    rows: Array<{
+      name: string;
+      email: string;
+      className: string;
+      phone?: string;
+      document?: string;
+      birthDate?: string;
+      guardianName?: string;
+      guardianPhone?: string;
+      password?: string;
+    }>,
+    schoolId: number,
+  ): Promise<{ total: number; success: number; errors: Array<{ linha: number; email: string; erro: string }> }> {
+    const errors: Array<{ linha: number; email: string; erro: string }> = [];
+    let success = 0;
+
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$';
+    const genPassword = () => 'Ed' + Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('') + '1@';
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const linha = i + 2; // linha 1 = cabeçalho, dados começam na 2
+
+      // Validações básicas
+      if (!row.name?.trim()) {
+        errors.push({ linha, email: row.email ?? '', erro: 'Nome obrigatório' });
+        continue;
+      }
+      if (!row.email?.trim()) {
+        errors.push({ linha, email: '', erro: 'E-mail obrigatório' });
+        continue;
+      }
+      if (!row.className?.trim()) {
+        errors.push({ linha, email: row.email, erro: 'Turma obrigatória' });
+        continue;
+      }
+
+      // Busca turma por nome
+      const turma = await this.classesRepository.findOne({
+        where: { name: row.className.trim(), schoolId },
+      });
+      if (!turma) {
+        errors.push({ linha, email: row.email, erro: `Turma "${row.className}" não encontrada` });
+        continue;
+      }
+
+      // Verifica limite do plano (conta os que já foram importados com sucesso)
+      const { allowed, current, limit } = await this.planLimitsService.canAddStudent(schoolId);
+      if (!allowed) {
+        errors.push({ linha, email: row.email, erro: `Limite do plano atingido (${current}/${limit})` });
+        continue;
+      }
+
+      try {
+        // Verifica se e-mail já existe — faz upsert silencioso
+        const existing = await this.usersRepository.findOne({
+          where: { email: row.email.trim().toLowerCase(), schoolId },
+        });
+
+        let studentUser: User;
+        if (existing) {
+          studentUser = existing;
+        } else {
+          studentUser = await this.usersService.create({
+            name: row.name.trim(),
+            email: row.email.trim().toLowerCase(),
+            password: row.password?.trim() || genPassword(),
+            phone: row.phone?.trim(),
+            document: row.document?.trim(),
+            birthDate: row.birthDate ? new Date(row.birthDate) : undefined,
+            guardianName: row.guardianName?.trim(),
+            guardianPhone: row.guardianPhone?.trim(),
+            role: UserRole.STUDENT,
+            schoolId,
+          });
+        }
+
+        // Matrícula — ignora se já matriculado na turma
+        const jaMatriculado = await this.enrollmentRepository.findOne({
+          where: { studentId: studentUser.id, classId: turma.id },
+        });
+        if (!jaMatriculado) {
+          await this.enrollmentService.enroll(studentUser.id, turma.id, schoolId);
+        }
+
+        success++;
+      } catch (e: any) {
+        const msg = e?.message?.includes('duplicate') || e?.code === '23505'
+          ? 'E-mail já cadastrado em outra escola'
+          : (e?.message ?? 'Erro inesperado');
+        errors.push({ linha, email: row.email, erro: msg });
+      }
+    }
+
+    return { total: rows.length, success, errors };
+  }
+
   // Lista alunos de uma turma com dados pessoais completos
   async getStudentsByClass(classId: number, schoolId: number): Promise<any[]> {
     return this.enrollmentRepository.manager.query(

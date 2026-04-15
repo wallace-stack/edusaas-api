@@ -45,6 +45,18 @@ export class SecretaryController {
     return this.secretaryService.enrollStudent(dto, user.schoolId);
   }
 
+  @Post('students/import')
+  importStudents(
+    @Body() rows: Array<{
+      name: string; email: string; className: string;
+      phone?: string; document?: string; birthDate?: string;
+      guardianName?: string; guardianPhone?: string; password?: string;
+    }>,
+    @CurrentUser() user: any,
+  ) {
+    return this.secretaryService.importStudents(rows, user.schoolId);
+  }
+
   // Listar alunos de uma turma com dados pessoais completos
   @Get('classes/:classId/students')
   getStudentsByClass(

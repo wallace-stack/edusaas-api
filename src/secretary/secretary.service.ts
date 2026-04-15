@@ -387,13 +387,18 @@ export class SecretaryService {
         });
 
         let studentUser: User;
+        let isNew = false;
+        let tempPassword = '';
+
         if (existing) {
           studentUser = existing;
         } else {
+          isNew = true;
+          tempPassword = row.password?.trim() || genPassword();
           studentUser = await this.usersService.create({
             name: row.name.trim(),
             email: row.email.trim().toLowerCase(),
-            password: row.password?.trim() || genPassword(),
+            password: tempPassword,
             phone: row.phone?.trim(),
             document: row.document?.trim(),
             birthDate: row.birthDate ? new Date(row.birthDate) : undefined,
@@ -410,6 +415,18 @@ export class SecretaryService {
         });
         if (!jaMatriculado) {
           await this.enrollmentService.enroll(studentUser.id, turma.id, schoolId);
+        }
+
+        if (isNew) {
+          try {
+            await this.mailService.sendMail({
+              to: studentUser.email,
+              subject: `${studentUser.name}, suas credenciais de acesso`,
+              html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333"><div style="background:#1E3A5F;padding:20px;border-radius:12px 12px 0 0;text-align:center"><h1 style="color:white;margin:0;font-size:24px">EduSaaS</h1><p style="color:#a0b4c8;margin:5px 0 0">Gestao Escolar Inteligente</p></div><div style="background:#f8fafc;padding:30px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px"><h2 style="color:#1E3A5F">Ola, ${studentUser.name}!</h2><p>Sua matricula foi realizada com sucesso. Aqui estao suas credenciais:</p><div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:20px 0"><p style="margin:0 0 10px"><strong>Email:</strong> ${studentUser.email}</p><p style="margin:0"><strong>Senha temporaria:</strong> <code style="background:#f1f5f9;padding:2px 8px;border-radius:4px">${tempPassword}</code></p></div><div style="text-align:center;margin:25px 0"><a href="https://edusaas-web-xi.vercel.app/login" style="background:#1E3A5F;color:white;padding:12px 30px;border-radius:8px;text-decoration:none;font-weight:bold">Acessar o Sistema</a></div><p style="color:#64748b;font-size:13px">Por seguranca, recomendamos alterar sua senha apos o primeiro acesso.</p></div></body></html>`,
+            });
+          } catch (mailErr) {
+            console.error(`Email nao enviado para ${studentUser.email}:`, mailErr);
+          }
         }
 
         success++;
@@ -439,6 +456,45 @@ export class SecretaryService {
        ORDER BY u.name`,
       [classId, schoolId],
     );
+  }
+
+  async exportStudentsCSV(schoolId: number): Promise<string> {
+    const students = await this.listStudents(schoolId);
+
+    const header = [
+      'nome','email','turma','telefone','cpf',
+      'data_nascimento','responsavel','telefone_responsavel',
+      'relacao_responsavel','endereco','numero','complemento',
+      'cidade','estado','cep','status_financeiro'
+    ].join(',');
+
+    const escape = (val: any) => {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      return str.includes(',') || str.includes('"') || str.includes('\n')
+        ? `"${str.replace(/"/g, '""')}"` : str;
+    };
+
+    const rows = students.map(s => [
+      escape(s.name),
+      escape(s.email),
+      escape(s.class?.name ?? ''),
+      escape(s.phone ?? ''),
+      escape((s as any).document ?? ''),
+      escape((s as any).birthDate ? new Date((s as any).birthDate).toLocaleDateString('pt-BR') : ''),
+      escape(s.guardianName ?? ''),
+      escape(s.guardianPhone ?? ''),
+      escape(s.guardianRelation ?? ''),
+      escape(s.address ?? ''),
+      escape(s.addressNumber ?? ''),
+      escape(s.complement ?? ''),
+      escape(s.city ?? ''),
+      escape(s.state ?? ''),
+      escape(s.zipCode ?? ''),
+      escape(s.financialStatus === 'overdue' ? 'Inadimplente' : 'Em dia'),
+    ].join(','));
+
+    return '\uFEFF' + [header, ...rows].join('\n');
   }
 
   // Desativa usuário — impede desativar diretor

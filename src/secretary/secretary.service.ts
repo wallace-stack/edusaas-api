@@ -401,7 +401,11 @@ export class SecretaryService {
             password: tempPassword,
             phone: row.phone?.trim(),
             document: row.document?.trim(),
-            birthDate: row.birthDate ? new Date(row.birthDate) : undefined,
+            birthDate: (() => {
+              if (!row.birthDate?.trim()) return undefined;
+              const d = new Date(row.birthDate.trim());
+              return isNaN(d.getTime()) ? undefined : d;
+            })(),
             guardianName: row.guardianName?.trim(),
             guardianPhone: row.guardianPhone?.trim(),
             role: UserRole.STUDENT,

@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Query,
   UseGuards,
+  Res,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { SecretaryService } from './secretary.service';
@@ -37,6 +38,15 @@ export class SecretaryController {
   @Get('students')
   listStudents(@CurrentUser() user: any) {
     return this.secretaryService.listStudents(user.schoolId);
+  }
+
+  // Exportar alunos como CSV
+  @Get('students/export')
+  async exportStudentsCSV(@CurrentUser() user: any, @Res() res: any) {
+    const csv = await this.secretaryService.exportStudentsCSV(user.schoolId);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="alunos.csv"');
+    res.send(csv);
   }
 
   // Matricular novo aluno

@@ -336,6 +336,11 @@ export class SecretaryService {
       birthDate?: string;
       guardianName?: string;
       guardianPhone?: string;
+      zipCode?: string;
+      address?: string;
+      addressNumber?: string;
+      city?: string;
+      state?: string;
       password?: string;
     }>,
     schoolId: number,
@@ -408,6 +413,11 @@ export class SecretaryService {
             })(),
             guardianName: row.guardianName?.trim(),
             guardianPhone: row.guardianPhone?.trim(),
+            zipCode: row.zipCode?.trim(),
+            address: row.address?.trim(),
+            addressNumber: row.addressNumber?.trim(),
+            city: row.city?.trim(),
+            state: row.state?.trim(),
             role: UserRole.STUDENT,
             schoolId,
           });

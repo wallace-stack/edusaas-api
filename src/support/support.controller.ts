@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, UnauthorizedException, Req } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from '../users/user.entity';
@@ -14,14 +14,43 @@ export class SupportController {
     private schoolsRepository: Repository<School>,
   ) {}
 
+  private attempts = new Map<string, { count: number; firstAt: number }>();
+
+  private checkRateLimit(ip: string) {
+    const now = Date.now();
+    const entry = this.attempts.get(ip);
+
+    if (entry) {
+      // Reset se passou 10 minutos
+      if (now - entry.firstAt > 10 * 60 * 1000) {
+        this.attempts.delete(ip);
+      } else if (entry.count >= 5) {
+        throw new UnauthorizedException('Muitas tentativas. Tente em 10 minutos.');
+      }
+    }
+  }
+
+  private registerAttempt(ip: string, success: boolean) {
+    if (success) { this.attempts.delete(ip); return; }
+    const entry = this.attempts.get(ip) ?? { count: 0, firstAt: Date.now() };
+    entry.count++;
+    this.attempts.set(ip, entry);
+  }
+
   @Post('access')
   async createSupportAccess(
+    @Req() req: any,
     @Body() body: { masterKey: string; schoolId: number; supportEmail: string },
   ) {
+    const ip = req.ip ?? 'unknown';
+    this.checkRateLimit(ip);
+
     // Valida chave master via variável de ambiente
     if (body.masterKey !== process.env.SUPPORT_MASTER_KEY) {
+      this.registerAttempt(ip, false);
       throw new UnauthorizedException('Chave inválida.');
     }
+    this.registerAttempt(ip, true);
 
     const school = await this.schoolsRepository.findOne({ where: { id: body.schoolId } });
     if (!school) throw new UnauthorizedException('Escola não encontrada.');

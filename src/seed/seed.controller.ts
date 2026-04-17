@@ -1,5 +1,5 @@
 // TODO: remover antes do MVP
-import { Controller, Get, Query, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Param, Query, ForbiddenException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { runDemoSeed } from '../database/seeds/demo.seed';
@@ -98,6 +98,21 @@ export class SeedController {
     );
 
     return { tables, schools, userColumns, users };
+  }
+
+  // TODO: remover antes do MVP
+  @Get('expire-trial/:schoolId')
+  async expireTrial(
+    @Param('schoolId') schoolId: string,
+    @Query('token') token: string,
+  ) {
+    if (token !== SEED_TOKEN) throw new ForbiddenException('Token inválido.');
+
+    await this.dataSource.query(
+      `UPDATE school SET "trialEndsAt" = NOW() - INTERVAL '1 day', "planStatus" = 'trial' WHERE id = $1`,
+      [Number(schoolId)],
+    );
+    return { message: `Trial da escola ${schoolId} expirado com sucesso` };
   }
 
   // TODO: remover antes do MVP

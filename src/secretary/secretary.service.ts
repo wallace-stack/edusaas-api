@@ -19,12 +19,18 @@ import { PlanLimitsService } from '../plans/plan-limits.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { MailService } from '../mail/mail.service';
 
+/**
+ * Sanitiza campos de texto vindos do CSV.
+ * Remove prefixos de fórmula Excel (=, +) que podem ser perigosos.
+ * ⚠️ NÃO usar em campos de e-mail — o @ é válido em e-mails.
+ * Campos seguros: nome, telefone, cpf, endereço, responsável.
+ */
 function sanitizeCsvField(value?: string): string | undefined {
   if (!value) return undefined;
   const trimmed = value.trim();
-  // Remove prefixos de fórmula Excel/Sheets que podem ser perigosos
-  if (['=', '+', '-', '@', '\t', '\r'].some(c => trimmed.startsWith(c))) {
-    return trimmed.replace(/^[=+\-@\t\r]+/, '').trim() || undefined;
+  // Prefixos de fórmula Excel/Sheets — perigosos em células abertas no Excel
+  if (['=', '+', '\t', '\r'].some(c => trimmed.startsWith(c))) {
+    return trimmed.replace(/^[=+\t\r]+/, '').trim() || undefined;
   }
   return trimmed || undefined;
 }

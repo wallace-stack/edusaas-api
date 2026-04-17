@@ -49,6 +49,10 @@ async function bootstrap() {
     crossOriginEmbedderPolicy: false,
   }));
 
+  // Limite de payload — impede uploads gigantes que derrubam o servidor
+  app.use(require('express').json({ limit: '5mb' }));
+  app.use(require('express').urlencoded({ extended: true, limit: '5mb' }));
+
   tempServer.close();
   await app.listen(PORT);
 }

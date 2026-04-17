@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { TrialGuard } from './trial/trial.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SchoolsModule } from './schools/schools.module';
@@ -41,6 +42,7 @@ import { SupportModule } from './support/support.module';
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    TypeOrmModule.forFeature([School]),
     MailModule,
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => ({
@@ -84,6 +86,7 @@ import { SupportModule } from './support/support.module';
   providers: [
     AppService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: TrialGuard },
   ],
 })
 export class AppModule { }

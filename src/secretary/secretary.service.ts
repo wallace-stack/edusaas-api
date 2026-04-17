@@ -19,6 +19,16 @@ import { PlanLimitsService } from '../plans/plan-limits.service';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { MailService } from '../mail/mail.service';
 
+function sanitizeCsvField(value?: string): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  // Remove prefixos de fórmula Excel/Sheets que podem ser perigosos
+  if (['=', '+', '-', '@', '\t', '\r'].some(c => trimmed.startsWith(c))) {
+    return trimmed.replace(/^[=+\-@\t\r]+/, '').trim() || undefined;
+  }
+  return trimmed || undefined;
+}
+
 @Injectable()
 export class SecretaryService {
   constructor(
@@ -401,23 +411,23 @@ export class SecretaryService {
           isNew = true;
           tempPassword = row.password?.trim() || genPassword();
           studentUser = await this.usersService.create({
-            name: row.name.trim(),
+            name: sanitizeCsvField(row.name) ?? row.name.trim(),
             email: row.email.trim().toLowerCase(),
             password: tempPassword,
-            phone: row.phone?.trim(),
-            document: row.document?.trim(),
+            phone: sanitizeCsvField(row.phone),
+            document: sanitizeCsvField(row.document),
             birthDate: (() => {
               if (!row.birthDate?.trim()) return undefined;
               const d = new Date(row.birthDate.trim());
               return isNaN(d.getTime()) ? undefined : d;
             })(),
-            guardianName: row.guardianName?.trim(),
-            guardianPhone: row.guardianPhone?.trim(),
-            zipCode: row.zipCode?.trim(),
-            address: row.address?.trim(),
-            addressNumber: row.addressNumber?.trim(),
-            city: row.city?.trim(),
-            state: row.state?.trim(),
+            guardianName: sanitizeCsvField(row.guardianName),
+            guardianPhone: sanitizeCsvField(row.guardianPhone),
+            zipCode: sanitizeCsvField(row.zipCode),
+            address: sanitizeCsvField(row.address),
+            addressNumber: sanitizeCsvField(row.addressNumber),
+            city: sanitizeCsvField(row.city),
+            state: sanitizeCsvField(row.state),
             role: UserRole.STUDENT,
             schoolId,
           });

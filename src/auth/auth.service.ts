@@ -31,8 +31,26 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterSchoolDto) {
-    const existingUser = await this.usersService.findByEmail(dto.directorEmail);
-    if (existingUser) throw new ConflictException('E-mail já cadastrado.');
+    // Bloqueia segundo trial pelo mesmo CNPJ
+    const cnpjNormalizado = dto.cnpj.replace(/\D/g, '');
+    const cnpjExistente = await this.schoolsService.findByCnpj(cnpjNormalizado);
+    if (cnpjExistente) {
+      if (cnpjExistente.planStatus !== PlanStatus.TRIAL || cnpjExistente.trialEndsAt) {
+        throw new BadRequestException({
+          code: 'TRIAL_ALREADY_USED',
+          message: 'Este CNPJ já utilizou o período de trial. Entre em contato para assinar um plano.',
+        });
+      }
+    }
+
+    // Bloqueia e-mail do diretor já cadastrado
+    const emailExistente = await this.usersService.findByEmail(dto.directorEmail);
+    if (emailExistente) {
+      throw new BadRequestException({
+        code: 'EMAIL_ALREADY_USED',
+        message: 'Este e-mail já está cadastrado no sistema.',
+      });
+    }
 
     const school = await this.schoolsService.create({
       name: dto.schoolName,

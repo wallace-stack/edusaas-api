@@ -116,6 +116,18 @@ export class SeedController {
   }
 
   // TODO: remover antes do MVP
+  @Get('migrate-plans')
+  async migratePlans(@Query('token') token: string) {
+    if (token !== SEED_TOKEN) throw new ForbiddenException('Token inválido.');
+
+    await this.dataSource.query(`UPDATE school SET plan = 'starter' WHERE plan = 'free'`);
+    await this.dataSource.query(`UPDATE school SET plan = 'escola'  WHERE plan = 'premium'`);
+
+    const result = await this.dataSource.query(`SELECT id, name, plan FROM school`);
+    return { message: 'Migração concluída: free→starter, premium→escola', schools: result };
+  }
+
+  // TODO: remover antes do MVP
   @Get('purge-old-school')
   async purgeOldSchool(@Query('token') token: string) {
     if (token !== SEED_TOKEN) throw new ForbiddenException('Token inválido.');

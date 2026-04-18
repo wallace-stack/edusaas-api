@@ -39,7 +39,7 @@ export class AuthService {
       cnpj: dto.cnpj.replace(/\D/g, ''),
       email: dto.schoolEmail,
       phone: dto.phone,
-      plan: SchoolPlan.FREE,
+      plan: SchoolPlan.STARTER,
       planStatus: PlanStatus.TRIAL,
     });
 

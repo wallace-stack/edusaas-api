@@ -50,10 +50,12 @@ export class AsaasWebhookController {
           const value: number = sub?.value ?? 0;
           let plan: SchoolPlan | null = null;
 
-          if (Math.abs(value - PLAN_LIMITS[SchoolPlan.PRO].price) < 0.01) {
+          if (Math.abs(value - PLAN_LIMITS[SchoolPlan.PRO].priceMonthly) < 0.01) {
             plan = SchoolPlan.PRO;
-          } else if (Math.abs(value - PLAN_LIMITS[SchoolPlan.PREMIUM].price) < 0.01) {
-            plan = SchoolPlan.PREMIUM;
+          } else if (Math.abs(value - PLAN_LIMITS[SchoolPlan.ESCOLA].priceMonthly) < 0.01) {
+            plan = SchoolPlan.ESCOLA;
+          } else if (Math.abs(value - PLAN_LIMITS[SchoolPlan.REDE].priceMonthly) < 0.01) {
+            plan = SchoolPlan.REDE;
           }
 
           if (plan) {

@@ -75,7 +75,7 @@ export class PlansController {
     const subscriptionId = await this.asaasService.createSubscription({
       customer: customerId,
       billingType: 'BOLETO',
-      value: planLimits.price,
+      value: planLimits.priceMonthly,
       nextDueDate,
       cycle: 'MONTHLY',
       description: `Plano ${plan} EduSaaS`,

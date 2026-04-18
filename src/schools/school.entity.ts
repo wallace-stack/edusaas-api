@@ -42,7 +42,7 @@ export class School {
   @Column({
     type: 'enum',
     enum: SchoolPlan,
-    default: SchoolPlan.FREE,
+    default: SchoolPlan.STARTER,
   })
   plan!: SchoolPlan;
 

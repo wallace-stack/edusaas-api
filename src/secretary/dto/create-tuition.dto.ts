@@ -35,4 +35,8 @@ export class SecretaryPayTuitionDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentNotes?: string;
 }

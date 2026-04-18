@@ -9,10 +9,14 @@ export enum TuitionStatus {
 }
 
 export enum PaymentMethod {
-  PIX = 'pix',
-  CASH = 'cash',
-  CARD = 'card',
-  BANK_SLIP = 'bank_slip',
+  PIX         = 'pix',
+  CREDIT_CARD = 'credit_card',
+  DEBIT_CARD  = 'debit_card',
+  CASH        = 'cash',
+  BANK_SLIP   = 'bank_slip',
+  OTHER       = 'other',
+  // legado — mantido para não quebrar dados existentes
+  CARD        = 'card',
 }
 
 @Entity()
@@ -40,6 +44,9 @@ export class Tuition {
 
   @Column({ nullable: true })
   notes: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  paymentNotes?: string;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'student_id' })

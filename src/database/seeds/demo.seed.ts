@@ -10,6 +10,7 @@ import { Grade } from '../../grades/grade.entity';
 import { Attendance, AttendanceStatus } from '../../attendance/attendance.entity';
 import { Notification, NotificationType, NotificationTarget } from '../../notifications/notification.entity';
 import { FeedPost, FeedPostType } from '../../feed/feed-post.entity';
+import { Tuition, TuitionStatus } from '../../finance/tuition.entity';
 
 // Retorna dias úteis (seg–sex) dos últimos `calendarDaysBack` dias corridos, em ordem cronológica
 function getWorkingDaysInRange(calendarDaysBack: number): Date[] {
@@ -372,6 +373,42 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
           schoolId: school.id, authorId: f.author.id, active: true, pinned: false,
         }));
       }
+    }
+
+    // ── Mensalidades Abril/2026 ───────────────────────────────────────────────
+    const tuitionRef  = 'Abril/2026';
+    const tuitionDue  = new Date('2026-04-01');
+    const tuitionStudents = await qr.manager.find(User, {
+      where: { schoolId: school.id, role: UserRole.STUDENT },
+      select: ['id'],
+      order: { id: 'ASC' },
+    });
+
+    let tuitionCount = 0;
+    for (let i = 0; i < tuitionStudents.length; i++) {
+      const studentId = tuitionStudents[i].id;
+      const existing  = await qr.manager.findOne(Tuition, {
+        where: { studentId, schoolId: school.id, reference: tuitionRef },
+      });
+      if (existing) continue;
+
+      // Primeiros 5 alunos (índice 0–4) → overdue; demais → pending
+      const status = i < 5 ? TuitionStatus.OVERDUE : TuitionStatus.PENDING;
+      await qr.manager.save(
+        Tuition,
+        qr.manager.create(Tuition, {
+          studentId,
+          schoolId: school.id,
+          amount:    800,
+          dueDate:   tuitionDue,
+          status,
+          reference: tuitionRef,
+        }),
+      );
+      tuitionCount++;
+    }
+    if (tuitionCount > 0) {
+      console.log(`   💰 ${tuitionCount} mensalidades de Abril/2026 criadas (5 overdue, ${tuitionCount - 5} pending)`);
     }
 
     await qr.commitTransaction();

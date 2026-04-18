@@ -287,6 +287,27 @@ export class SecretaryService {
     return this.financeService.getFinancialReport(schoolId, m, y);
   }
 
+  // Lista mensalidades pendentes/vencidas com nome do aluno
+  async getPendingTuitions(schoolId: number): Promise<any[]> {
+    const tuitions = await this.tuitionRepository.find({
+      where: [
+        { schoolId, status: TuitionStatus.PENDING },
+        { schoolId, status: TuitionStatus.OVERDUE },
+      ],
+      relations: ['student'],
+      order: { dueDate: 'ASC' },
+    });
+    return tuitions.map(t => ({
+      id: t.id,
+      studentId: t.studentId,
+      studentName: t.student?.name ?? '—',
+      amount: Number(t.amount),
+      dueDate: t.dueDate,
+      reference: t.reference,
+      status: t.status,
+    }));
+  }
+
   // Lança mensalidade
   async createTuition(dto: SecretaryCreateTuitionDto, schoolId: number): Promise<Tuition> {
     return this.financeService.createTuition(
@@ -299,7 +320,7 @@ export class SecretaryService {
   async payTuition(dto: SecretaryPayTuitionDto, schoolId: number): Promise<Tuition> {
     return this.financeService.payTuition(
       dto.tuitionId,
-      { paymentMethod: dto.paymentMethod, paidDate: dto.paidDate, notes: dto.notes },
+      { paymentMethod: dto.paymentMethod, paidDate: dto.paidDate, notes: dto.notes, paymentNotes: dto.paymentNotes },
       schoolId,
     );
   }

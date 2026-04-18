@@ -108,6 +108,12 @@ export class SecretaryController {
     return this.secretaryService.getFinancialReport(user.schoolId, Number(month) || undefined, Number(year) || undefined);
   }
 
+  // Mensalidades pendentes/vencidas para o modal de pagamento
+  @Get('financial/pending')
+  getPendingTuitions(@CurrentUser() user: any) {
+    return this.secretaryService.getPendingTuitions(user.schoolId);
+  }
+
   // Lançar mensalidade
   @Post('financial/tuition')
   createTuition(@Body() dto: SecretaryCreateTuitionDto, @CurrentUser() user: any) {

@@ -5,7 +5,9 @@
       "Bash(npm run:*)",
       "Bash(echo \"EXIT:$?\")",
       "Bash(npx tsc:*)",
-      "Bash(npm ls:*)"
+''      "Bash(npm ls:*)",
+      "Bash(npm info:*)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }

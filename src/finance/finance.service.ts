@@ -36,6 +36,7 @@ export class FinanceService {
     tuition.paymentMethod = dto.paymentMethod;
     tuition.paidDate = dto.paidDate ? new Date(dto.paidDate) : new Date();
     if (dto.notes) tuition.notes = dto.notes;
+    if (dto.paymentNotes) tuition.paymentNotes = dto.paymentNotes;
     return this.tuitionRepository.save(tuition);
   }
 

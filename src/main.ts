@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import * as http from 'http';
 
 // Servidor temporário para satisfazer o port scan do Render enquanto o DB conecta
@@ -48,6 +49,8 @@ async function bootstrap() {
     },
     crossOriginEmbedderPolicy: false,
   }));
+
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   // Limite de payload — impede uploads gigantes que derrubam o servidor
   app.use(require('express').json({ limit: '5mb' }));

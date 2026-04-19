@@ -289,23 +289,158 @@ export class SecretaryService {
 
   // Lista mensalidades pendentes/vencidas com nome do aluno
   async getPendingTuitions(schoolId: number): Promise<any[]> {
+    return this.enrollmentRepository.manager.query(`
+      SELECT
+        t.id,
+        t.amount,
+        t.status,
+        t."dueDate",
+        t."paidDate",
+        t."paymentMethod",
+        t."paymentNotes",
+        t.reference,
+        u.name as "studentName",
+        u.email as "studentEmail"
+      FROM tuition t
+      JOIN "user" u ON u.id = t."studentId"
+      WHERE t."schoolId" = $1
+        AND t.status IN ('pending', 'overdue')
+      ORDER BY t.status DESC, t."dueDate" ASC
+    `, [schoolId]);
+  }
+
+  // Resumo financeiro com dados para gráficos
+  async getFinancialSummary(schoolId: number, month: number, year: number): Promise<any> {
+    const rows = await this.enrollmentRepository.manager.query(`
+      SELECT
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as "totalReceived",
+        COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as "totalPending",
+        COALESCE(SUM(CASE WHEN status = 'overdue' THEN amount ELSE 0 END), 0) as "totalOverdue",
+        COALESCE(SUM(amount), 0) as "totalExpected"
+      FROM tuition
+      WHERE "schoolId" = $1
+        AND EXTRACT(MONTH FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') = $2
+        AND EXTRACT(YEAR FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') = $3
+    `, [schoolId, month, year]);
+
+    const r = rows[0];
+    const totalExpected = Number(r.totalExpected);
+    const totalReceived = Number(r.totalReceived);
+    const totalPending = Number(r.totalPending);
+    const totalOverdue = Number(r.totalOverdue);
+    const inadimplencia = totalExpected > 0
+      ? Math.round((totalOverdue / totalExpected) * 100)
+      : 0;
+
+    const methodRows = await this.enrollmentRepository.manager.query(`
+      SELECT
+        COALESCE("paymentMethod", 'other') as method,
+        SUM(amount) as total
+      FROM tuition
+      WHERE "schoolId" = $1
+        AND status = 'paid'
+        AND EXTRACT(MONTH FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') = $2
+        AND EXTRACT(YEAR FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') = $3
+      GROUP BY "paymentMethod"
+    `, [schoolId, month, year]);
+
+    const methodChart: Record<string, number> = { pix: 0, credit_card: 0, debit_card: 0, cash: 0, bank_slip: 0, other: 0 };
+    for (const row of methodRows) {
+      const key = row.method as string;
+      if (key in methodChart) methodChart[key] = Number(row.total);
+      else methodChart.other += Number(row.total);
+    }
+
+    const monthlyRows = await this.enrollmentRepository.manager.query(`
+      SELECT
+        TO_CHAR("dueDate" AT TIME ZONE 'America/Sao_Paulo', 'Mon/YY') as month,
+        EXTRACT(YEAR FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') * 100 + EXTRACT(MONTH FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') as sort_key,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as received,
+        COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as pending,
+        COALESCE(SUM(CASE WHEN status = 'overdue' THEN amount ELSE 0 END), 0) as overdue
+      FROM tuition
+      WHERE "schoolId" = $1
+        AND "dueDate" >= NOW() - INTERVAL '6 months'
+      GROUP BY 1, 2
+      ORDER BY 2 ASC
+    `, [schoolId]);
+
+    return {
+      totalReceived,
+      totalPending,
+      totalOverdue,
+      inadimplencia,
+      statusChart: { received: totalReceived, pending: totalPending, overdue: totalOverdue },
+      paymentMethodChart: methodChart,
+      monthlyChart: monthlyRows.map((row: any) => ({
+        month: row.month,
+        received: Number(row.received),
+        pending: Number(row.pending),
+        overdue: Number(row.overdue),
+      })),
+    };
+  }
+
+  // Lista todas as mensalidades com filtros
+  async getAllTuitions(schoolId: number, filters: { month: number; year: number; status: string; search: string }): Promise<any[]> {
+    const { month, year, status, search } = filters;
+    const statusFilter = status === 'all' ? `AND t.status IN ('paid','pending','overdue')` : `AND t.status = '${status}'`;
+    const searchFilter = search ? `AND LOWER(u.name) LIKE LOWER('%${search.replace(/'/g, '')}%')` : '';
+
+    return this.enrollmentRepository.manager.query(`
+      SELECT
+        t.id,
+        t.amount,
+        t.status,
+        t."dueDate",
+        t."paidDate",
+        t."paymentMethod",
+        t."paymentNotes",
+        t.reference,
+        u.name as "studentName",
+        u.email as "studentEmail"
+      FROM tuition t
+      JOIN "user" u ON u.id = t."studentId"
+      WHERE t."schoolId" = $1
+        AND EXTRACT(MONTH FROM t."dueDate" AT TIME ZONE 'America/Sao_Paulo') = $2
+        AND EXTRACT(YEAR FROM t."dueDate" AT TIME ZONE 'America/Sao_Paulo') = $3
+        ${statusFilter}
+        ${searchFilter}
+      ORDER BY t.status DESC, t."dueDate" ASC
+    `, [schoolId, month, year]);
+  }
+
+  // Notifica inadimplentes por e-mail
+  async notifyOverdue(schoolId: number): Promise<{ sent: number; errors: number }> {
     const tuitions = await this.tuitionRepository.find({
-      where: [
-        { schoolId, status: TuitionStatus.PENDING },
-        { schoolId, status: TuitionStatus.OVERDUE },
-      ],
+      where: { schoolId, status: TuitionStatus.OVERDUE },
       relations: ['student'],
-      order: { dueDate: 'ASC' },
     });
-    return tuitions.map(t => ({
-      id: t.id,
-      studentId: t.studentId,
-      studentName: t.student?.name ?? '—',
-      amount: Number(t.amount),
-      dueDate: t.dueDate,
-      reference: t.reference,
-      status: t.status,
-    }));
+
+    let sent = 0;
+    let errors = 0;
+
+    for (const t of tuitions) {
+      const student = t.student;
+      if (!student?.email) { errors++; continue; }
+      try {
+        await this.mailService.sendMail({
+          to: student.email,
+          subject: 'Aviso de mensalidade em atraso',
+          html: `
+            <p>Olá, <strong>${student.name}</strong>!</p>
+            <p>Identificamos que sua mensalidade referente a <strong>${t.reference || 'período não informado'}</strong>
+            no valor de <strong>R$ ${Number(t.amount).toFixed(2).replace('.', ',')}</strong> está em atraso.</p>
+            <p>Por favor, entre em contato com a secretaria para regularizar sua situação.</p>
+          `,
+        });
+        sent++;
+      } catch {
+        errors++;
+      }
+    }
+
+    return { sent, errors };
   }
 
   // Lança mensalidade

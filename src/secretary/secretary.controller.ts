@@ -108,6 +108,41 @@ export class SecretaryController {
     return this.secretaryService.getFinancialReport(user.schoolId, Number(month) || undefined, Number(year) || undefined);
   }
 
+  // Resumo financeiro com dados para gráficos
+  @Get('financial/summary')
+  getFinancialSummary(
+    @CurrentUser() user: any,
+    @Query('month') month: string,
+    @Query('year') year: string,
+  ) {
+    const m = Number(month) || new Date().getMonth() + 1;
+    const y = Number(year) || new Date().getFullYear();
+    return this.secretaryService.getFinancialSummary(user.schoolId, m, y);
+  }
+
+  // Mensalidades com filtros
+  @Get('financial/tuitions')
+  getAllTuitions(
+    @CurrentUser() user: any,
+    @Query('month') month: string,
+    @Query('year') year: string,
+    @Query('status') status: string,
+    @Query('search') search: string,
+  ) {
+    return this.secretaryService.getAllTuitions(user.schoolId, {
+      month: Number(month) || new Date().getMonth() + 1,
+      year: Number(year) || new Date().getFullYear(),
+      status: status || 'all',
+      search: search || '',
+    });
+  }
+
+  // Notificar inadimplentes por e-mail
+  @Post('financial/notify-overdue')
+  notifyOverdue(@CurrentUser() user: any) {
+    return this.secretaryService.notifyOverdue(user.schoolId);
+  }
+
   // Mensalidades pendentes/vencidas para o modal de pagamento
   @Get('financial/pending')
   getPendingTuitions(@CurrentUser() user: any) {

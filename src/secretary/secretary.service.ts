@@ -319,7 +319,8 @@ export class SecretaryService {
         COALESCE(SUM(amount), 0) as "totalExpected"
       FROM tuition
       WHERE "schoolId" = $1
-        AND DATE_TRUNC('month', "dueDate" AT TIME ZONE 'America/Sao_Paulo') = DATE_TRUNC('month', MAKE_DATE($3::int, $2::int, 1)::timestamp)
+        AND EXTRACT(MONTH FROM "dueDate") = $2
+        AND EXTRACT(YEAR FROM "dueDate") = $3
     `, [schoolId, month, year]);
 
     const r = rows[0];
@@ -338,7 +339,8 @@ export class SecretaryService {
       FROM tuition
       WHERE "schoolId" = $1
         AND status = 'paid'
-        AND DATE_TRUNC('month', "dueDate" AT TIME ZONE 'America/Sao_Paulo') = DATE_TRUNC('month', MAKE_DATE($3::int, $2::int, 1)::timestamp)
+        AND EXTRACT(MONTH FROM "dueDate") = $2
+        AND EXTRACT(YEAR FROM "dueDate") = $3
       GROUP BY "paymentMethod"
     `, [schoolId, month, year]);
 
@@ -351,14 +353,14 @@ export class SecretaryService {
 
     const monthlyRows = await this.enrollmentRepository.manager.query(`
       SELECT
-        TO_CHAR("dueDate" AT TIME ZONE 'America/Sao_Paulo', 'Mon/YY') as month,
-        EXTRACT(YEAR FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') * 100 + EXTRACT(MONTH FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') as sort_key,
+        TO_CHAR("dueDate", 'Mon/YY') as month,
+        EXTRACT(YEAR FROM "dueDate") * 100 + EXTRACT(MONTH FROM "dueDate") as sort_key,
         COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as received,
         COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as pending,
         COALESCE(SUM(CASE WHEN status = 'overdue' THEN amount ELSE 0 END), 0) as overdue
       FROM tuition
       WHERE "schoolId" = $1
-        AND "dueDate" >= NOW() - INTERVAL '6 months'
+        AND "dueDate" >= NOW() AT TIME ZONE 'UTC' - INTERVAL '6 months'
       GROUP BY 1, 2
       ORDER BY 2 ASC
     `, [schoolId]);
@@ -400,7 +402,8 @@ export class SecretaryService {
       FROM tuition t
       JOIN "user" u ON u.id = t."studentId"
       WHERE t."schoolId" = $1
-        AND DATE_TRUNC('month', t."dueDate" AT TIME ZONE 'America/Sao_Paulo') = DATE_TRUNC('month', MAKE_DATE($3::int, $2::int, 1)::timestamp)
+        AND EXTRACT(MONTH FROM t."dueDate") = $2
+        AND EXTRACT(YEAR FROM t."dueDate") = $3
         ${statusFilter}
         ${searchFilter}
       ORDER BY t.status DESC, t."dueDate" ASC

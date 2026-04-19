@@ -377,7 +377,7 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
 
     // ── Mensalidades Abril/2026 ───────────────────────────────────────────────
     const tuitionRef  = 'Abril/2026';
-    const tuitionDue  = new Date('2026-04-01T12:00:00-03:00');
+    const tuitionDue  = new Date('2026-04-01');
     const tuitionStudents = await qr.manager.find(User, {
       where: { schoolId: school.id, role: UserRole.STUDENT },
       select: ['id'],

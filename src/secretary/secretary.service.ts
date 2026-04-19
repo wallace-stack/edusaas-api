@@ -319,8 +319,7 @@ export class SecretaryService {
         COALESCE(SUM(amount), 0) as "totalExpected"
       FROM tuition
       WHERE "schoolId" = $1
-        AND EXTRACT(MONTH FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') = $2
-        AND EXTRACT(YEAR FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') = $3
+        AND DATE_TRUNC('month', "dueDate" AT TIME ZONE 'America/Sao_Paulo') = DATE_TRUNC('month', MAKE_DATE($3::int, $2::int, 1)::timestamp)
     `, [schoolId, month, year]);
 
     const r = rows[0];
@@ -339,8 +338,7 @@ export class SecretaryService {
       FROM tuition
       WHERE "schoolId" = $1
         AND status = 'paid'
-        AND EXTRACT(MONTH FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') = $2
-        AND EXTRACT(YEAR FROM "dueDate" AT TIME ZONE 'America/Sao_Paulo') = $3
+        AND DATE_TRUNC('month', "dueDate" AT TIME ZONE 'America/Sao_Paulo') = DATE_TRUNC('month', MAKE_DATE($3::int, $2::int, 1)::timestamp)
       GROUP BY "paymentMethod"
     `, [schoolId, month, year]);
 
@@ -402,8 +400,7 @@ export class SecretaryService {
       FROM tuition t
       JOIN "user" u ON u.id = t."studentId"
       WHERE t."schoolId" = $1
-        AND EXTRACT(MONTH FROM t."dueDate" AT TIME ZONE 'America/Sao_Paulo') = $2
-        AND EXTRACT(YEAR FROM t."dueDate" AT TIME ZONE 'America/Sao_Paulo') = $3
+        AND DATE_TRUNC('month', t."dueDate" AT TIME ZONE 'America/Sao_Paulo') = DATE_TRUNC('month', MAKE_DATE($3::int, $2::int, 1)::timestamp)
         ${statusFilter}
         ${searchFilter}
       ORDER BY t.status DESC, t."dueDate" ASC

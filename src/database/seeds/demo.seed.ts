@@ -377,20 +377,22 @@ export async function runDemoSeed(dataSource: DataSource): Promise<void> {
 
     // ── Mensalidades Abril/2026 ───────────────────────────────────────────────
     const tuitionRef  = 'Abril/2026';
-    const tuitionDue  = new Date('2026-04-01');
+    const tuitionDue  = new Date('2026-04-01T12:00:00-03:00');
     const tuitionStudents = await qr.manager.find(User, {
       where: { schoolId: school.id, role: UserRole.STUDENT },
       select: ['id'],
       order: { id: 'ASC' },
     });
 
+    // Limpa tuitions antigas de abril para recriar com data correta
+    await qr.manager.query(
+      `DELETE FROM tuition WHERE "schoolId" = $1 AND reference = 'Abril/2026'`,
+      [school.id],
+    );
+
     let tuitionCount = 0;
     for (let i = 0; i < tuitionStudents.length; i++) {
       const studentId = tuitionStudents[i].id;
-      const existing  = await qr.manager.findOne(Tuition, {
-        where: { studentId, schoolId: school.id, reference: tuitionRef },
-      });
-      if (existing) continue;
 
       // Primeiros 5 alunos (índice 0–4) → overdue; demais → pending
       const status = i < 5 ? TuitionStatus.OVERDUE : TuitionStatus.PENDING;

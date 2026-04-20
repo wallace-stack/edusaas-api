@@ -28,6 +28,14 @@ export class TrialGuard implements CanActivate {
     // Se tem plano pago ativo, libera
     if (school.planStatus === PlanStatus.ACTIVE) return true;
 
+    // Se plano foi cancelado
+    if (school.planStatus === PlanStatus.CANCELLED) {
+      throw new ForbiddenException({
+        code: 'PLAN_CANCELLED',
+        message: 'Sua assinatura foi cancelada. Escolha um plano para continuar.',
+      });
+    }
+
     // Verifica se trial expirou
     if (school.planStatus === PlanStatus.TRIAL &&
         school.trialEndsAt && new Date() > new Date(school.trialEndsAt)) {

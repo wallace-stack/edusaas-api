@@ -83,4 +83,17 @@ export class SchoolsService {
   async updateSchoolPlan(subscriptionId: string, plan: SchoolPlan): Promise<void> {
     await this.schoolsRepository.update({ asaasSubscriptionId: subscriptionId }, { plan });
   }
+
+  // Cancela o plano da escola
+  async cancelPlan(schoolId: number, reason?: string): Promise<{ message: string }> {
+    await this.schoolsRepository.update(schoolId, {
+      planStatus: PlanStatus.CANCELLED,
+    });
+
+    if (reason) {
+      console.log(`[CANCEL] Escola ${schoolId} cancelou. Motivo: ${reason}`);
+    }
+
+    return { message: 'Plano cancelado com sucesso.' };
+  }
 }

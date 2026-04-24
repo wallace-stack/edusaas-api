@@ -419,20 +419,20 @@ export class SecretaryService {
     const params: any[] = [schoolId];
     let monthFilter = '';
     if (month && year) {
-      monthFilter = ` AND EXTRACT(MONTH FROM t."dueDate") = $2 AND EXTRACT(YEAR FROM t."dueDate") = $3`;
+      monthFilter = ` AND EXTRACT(MONTH FROM t."dueDate") = $2
+                     AND EXTRACT(YEAR  FROM t."dueDate") = $3`;
       params.push(month, year);
     }
 
     const rows = await this.enrollmentRepository.manager.query(`
       SELECT
-        t.reference        as "Referência",
-        u.name             as "Aluno",
-        u.cpf              as "CPF",
-        t.amount           as "Valor",
-        t."paidDate"       as "Data Pagamento",
-        t."paymentMethod"  as "Forma Pagamento",
-        t.status           as "Status",
-        t."dueDate"        as "Vencimento"
+        t.reference        AS "Referência",
+        u.name             AS "Aluno",
+        t.amount           AS "Valor",
+        t."paidDate"       AS "Data Pagamento",
+        t."paymentMethod"  AS "Forma Pagamento",
+        t.status           AS "Status",
+        t."dueDate"        AS "Vencimento"
       FROM tuition t
       JOIN "user" u ON u.id = t."studentId"
       WHERE t."schoolId" = $1
@@ -440,34 +440,41 @@ export class SecretaryService {
       ORDER BY t."dueDate" DESC, u.name ASC
     `, params);
 
-    const header = 'Referência,Aluno,CPF,Valor,Data Pagamento,Forma Pagamento,Status,Vencimento';
-
-    if (rows.length === 0) return header + '\n';
-
     const PAYMENT_MAP: Record<string, string> = {
-      pix: 'PIX', credit_card: 'Cartão de Crédito', debit_card: 'Cartão de Débito',
-      cash: 'Dinheiro', bank_slip: 'Boleto', other: 'Outro',
+      pix: 'PIX',
+      credit_card: 'Cartão de Crédito',
+      debit_card: 'Cartão de Débito',
+      cash: 'Dinheiro',
+      bank_slip: 'Boleto',
+      other: 'Outro',
     };
+
     const STATUS_MAP: Record<string, string> = {
-      paid: 'Paga', pending: 'Pendente', overdue: 'Em atraso',
+      paid: 'Paga',
+      pending: 'Pendente',
+      overdue: 'Em atraso',
     };
-    const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('pt-BR') : '-';
-    const fmtAmount = (v: any) =>
+
+    const fmt = (d: any) =>
+      d ? new Date(d).toLocaleDateString('pt-BR') : '-';
+
+    const brl = (v: any) =>
       Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    const esc = (v: any) => `"${String(v ?? '-').replace(/"/g, '""')}"`;
+
+    const header = 'Referência,Aluno,Valor,Data Pagamento,Forma Pagamento,Status,Vencimento';
 
     const lines = rows.map((r: any) =>
       [
-        r['Referência'] ?? '',
-        r['Aluno'] ?? '',
-        r['CPF'] ?? '-',
-        fmtAmount(r['Valor']),
-        fmtDate(r['Data Pagamento']),
-        PAYMENT_MAP[r['Forma Pagamento']] ?? r['Forma Pagamento'] ?? '-',
-        STATUS_MAP[r['Status']] ?? r['Status'] ?? '-',
-        fmtDate(r['Vencimento']),
-      ]
-        .map(v => `"${String(v).replace(/"/g, '""')}"`)
-        .join(',')
+        esc(r['Referência']),
+        esc(r['Aluno']),
+        esc(brl(r['Valor'])),
+        esc(fmt(r['Data Pagamento'])),
+        esc(PAYMENT_MAP[r['Forma Pagamento']] ?? r['Forma Pagamento'] ?? '-'),
+        esc(STATUS_MAP[r['Status']] ?? r['Status'] ?? '-'),
+        esc(fmt(r['Vencimento'])),
+      ].join(',')
     );
 
     return [header, ...lines].join('\n');

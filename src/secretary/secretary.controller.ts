@@ -12,6 +12,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import type { Response } from 'express';
 import { SecretaryService } from './secretary.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { SecretaryCreateTuitionDto, SecretaryPayTuitionDto } from './dto/create-tuition.dto';
@@ -141,6 +142,29 @@ export class SecretaryController {
   @Post('financial/notify-overdue')
   notifyOverdue(@CurrentUser() user: any) {
     return this.secretaryService.notifyOverdue(user.schoolId);
+  }
+
+  // Exportar relatório fiscal CSV
+  @Get('financial/export-fiscal')
+  async exportFiscal(
+    @CurrentUser() user: any,
+    @Query('month') month: string,
+    @Query('year') year: string,
+    @Res() res: Response,
+  ) {
+    const csv = await this.secretaryService.exportFiscalCsv(
+      user.schoolId,
+      month ? parseInt(month) : null,
+      year ? parseInt(year) : null,
+    );
+
+    const filename = month && year
+      ? `relatorio-fiscal-${year}-${month.padStart(2, '0')}.csv`
+      : `relatorio-fiscal-completo.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
   }
 
   // Mensalidades pendentes/vencidas para o modal de pagamento

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -17,6 +18,7 @@ import { SecretaryService } from './secretary.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { SecretaryCreateTuitionDto, SecretaryPayTuitionDto } from './dto/create-tuition.dto';
 import { CreateClassDto } from '../classes/dto/create-class.dto';
+import { UpdateStudentDto } from './dto/update-student.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -54,6 +56,15 @@ export class SecretaryController {
   @Post('students')
   enrollStudent(@Body() dto: CreateEnrollmentDto, @CurrentUser() user: any) {
     return this.secretaryService.enrollStudent(dto, user.schoolId);
+  }
+
+  @Patch('students/:id')
+  updateStudent(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateStudentDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.secretaryService.updateStudent(user.schoolId, id, dto);
   }
 
   @Post('students/import')

@@ -10,6 +10,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping API
-        run: |
-          curl -s https://edusaas-api-tbig.onrender.com/health
-          echo "Ping enviado em $(date)"
+        run: curl -s https://edusaas-api-tbig.onrender.com/health

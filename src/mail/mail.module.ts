@@ -22,7 +22,7 @@ import { MailService } from './mail.service';
           },
         },
         defaults: {
-          from: configService.get('MAIL_FROM', 'EduSaaS <facilclasse@gmail.com>'),
+          from: configService.get('MAIL_FROM', 'Walladm <facilclasse@gmail.com>'),
         },
       }),
       inject: [ConfigService],

@@ -482,10 +482,28 @@ export class SecretaryService {
 
   // Notifica inadimplentes por e-mail
   async notifyOverdue(schoolId: number): Promise<{ sent: number; errors: number }> {
-    const tuitions = await this.tuitionRepository.find({
-      where: { schoolId, status: TuitionStatus.OVERDUE },
-      relations: ['student'],
-    });
+    const [tuitions, school] = await Promise.all([
+      this.tuitionRepository.find({
+        where: { schoolId, status: TuitionStatus.OVERDUE },
+        relations: ['student'],
+      }),
+      this.enrollmentRepository.manager.query(
+        `SELECT "pixKey", "pixKeyType", "paymentInfo", "paymentLink" FROM school WHERE id = $1`,
+        [schoolId],
+      ).then((rows: any[]) => rows[0] || {}),
+    ]);
+
+    let paymentBlock = '';
+    if (school?.pixKey || school?.paymentLink || school?.paymentInfo) {
+      paymentBlock = `
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin:16px 0;">
+          <p style="margin:0 0 8px;font-weight:bold;color:#1E3A5F;">💳 Como pagar:</p>
+          ${school.pixKey ? `<p style="margin:0 0 4px;color:#374151;">PIX (${school.pixKeyType || 'chave'}): <strong>${school.pixKey}</strong></p>` : ''}
+          ${school.paymentInfo ? `<p style="margin:4px 0;color:#374151;">${school.paymentInfo}</p>` : ''}
+          ${school.paymentLink ? `<p style="margin:8px 0 0;"><a href="${school.paymentLink}" style="color:#1E3A5F;font-weight:bold;">→ Clique aqui para pagar online</a></p>` : ''}
+        </div>
+      `;
+    }
 
     let sent = 0;
     let errors = 0;
@@ -501,6 +519,7 @@ export class SecretaryService {
             <p>Olá, <strong>${student.name}</strong>!</p>
             <p>Identificamos que sua mensalidade referente a <strong>${t.reference || 'período não informado'}</strong>
             no valor de <strong>R$ ${Number(t.amount).toFixed(2).replace('.', ',')}</strong> está em atraso.</p>
+            ${paymentBlock}
             <p>Por favor, entre em contato com a secretaria para regularizar sua situação.</p>
           `,
         });

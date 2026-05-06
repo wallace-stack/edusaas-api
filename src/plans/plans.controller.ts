@@ -78,7 +78,7 @@ export class PlansController {
       value: planLimits.priceMonthly,
       nextDueDate,
       cycle: 'MONTHLY',
-      description: `Plano ${plan} EduSaaS`,
+      description: `Plano ${plan} Walladm`,
     });
 
     // Atualiza escola

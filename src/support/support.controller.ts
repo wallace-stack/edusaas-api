@@ -69,7 +69,7 @@ export class SupportController {
       await this.usersRepository.save(supportUser);
     } else {
       supportUser = this.usersRepository.create({
-        name: 'Suporte EduSaaS',
+        name: 'Suporte Walladm',
         email: body.supportEmail,
         password: hashed,
         role: UserRole.SECRETARY,

@@ -69,6 +69,18 @@ export class School {
   @Column({ type: 'timestamp', nullable: true })
   planActivatedAt!: Date;
 
+  @Column({ nullable: true })
+  pixKey!: string;
+
+  @Column({ nullable: true })
+  pixKeyType!: string;
+
+  @Column({ nullable: true })
+  paymentInfo!: string;
+
+  @Column({ nullable: true })
+  paymentLink!: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 

@@ -96,4 +96,16 @@ export class SchoolsService {
 
     return { message: 'Plano cancelado com sucesso.' };
   }
+
+  async findById(schoolId: number): Promise<School | null> {
+    return this.schoolsRepository.findOne({ where: { id: schoolId } });
+  }
+
+  async updatePaymentConfig(
+    schoolId: number,
+    data: { pixKey?: string; pixKeyType?: string; paymentInfo?: string; paymentLink?: string },
+  ): Promise<{ message: string }> {
+    await this.schoolsRepository.update(schoolId, data);
+    return { message: 'Configurações de pagamento atualizadas.' };
+  }
 }

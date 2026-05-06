@@ -33,6 +33,9 @@ export class User {
   document: string;
 
   @Column({ nullable: true })
+  cpf: string;
+
+  @Column({ nullable: true })
   birthDate: Date;
 
   // Endereço

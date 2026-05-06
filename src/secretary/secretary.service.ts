@@ -763,4 +763,17 @@ export class SecretaryService {
     await this.usersService.remove(id, schoolId);
     return { message: 'Usuário desativado com sucesso.' };
   }
+
+  async updateStudent(schoolId: number, studentId: number, data: Partial<{
+    name: string; email: string; phone: string; cpf: string;
+    address: string; city: string; state: string; zipCode: string;
+    guardianName: string; guardianPhone: string; guardianRelation: string;
+  }>): Promise<{ message: string }> {
+    const student = await this.usersRepository.findOne({
+      where: { id: studentId, schoolId, role: UserRole.STUDENT },
+    });
+    if (!student) throw new NotFoundException('Aluno não encontrado.');
+    await this.usersRepository.update(studentId, data);
+    return { message: 'Dados do aluno atualizados com sucesso.' };
+  }
 }

@@ -141,6 +141,37 @@ export class MailService {
     }
   }
 
+  async sendStudentWelcome(name: string, email: string, password: string) {
+    const firstName = name.split(' ')[0];
+    const content = `
+      <h1 style="color:#1E3A5F;font-size:24px;font-weight:700;margin:0 0 8px;">Olá, ${firstName}! 👋</h1>
+      <p style="color:#64748b;font-size:15px;margin:0 0 24px;">Sua matrícula foi realizada com sucesso. Aqui estão suas credenciais de acesso:</p>
+      <div style="background:#F0F4F8;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+        <p style="margin:0 0 10px;font-size:15px;color:#1E3A5F;">📧 <strong>Email:</strong> ${email}</p>
+        <p style="margin:0;font-size:15px;color:#1E3A5F;">🔑 <strong>Senha temporária:</strong> <code style="background:#e2e8f0;padding:2px 8px;border-radius:6px;font-size:14px;">${password}</code></p>
+      </div>
+      ${this.btnPrimary('https://edusaas-web-xi.vercel.app/login', 'Acessar o Sistema →')}
+      <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:14px 20px;margin-top:24px;">
+        <p style="margin:0;font-size:13px;color:#92400e;">⚠️ Por segurança, recomendamos alterar sua senha após o primeiro acesso.</p>
+      </div>
+    `;
+    try {
+      if (!this.resend) {
+        this.logger.warn('[Mail] E-mail não enviado — Resend não configurado');
+        return;
+      }
+      await this.resend.emails.send({
+        from: this.from,
+        to: email,
+        subject: `${name}, suas credenciais de acesso ao Walladm`,
+        html: this.baseTemplate('Credenciais de acesso — Walladm', content),
+      });
+      this.logger.log(`[Mail] Credenciais enviadas para ${email}`);
+    } catch (error) {
+      this.logger.error(`[Mail] Erro credenciais para ${email}:`, error);
+    }
+  }
+
   async sendMail({ to, subject, html }: { to: string; subject: string; html: string }) {
     try {
       if (!this.resend) {

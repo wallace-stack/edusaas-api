@@ -216,7 +216,9 @@ export class UsersService {
       const user = this.usersRepository.create({ ...data, password: hashedPassword });
       return await this.usersRepository.save(user);
     } catch (error: any) {
-      if (error.code === 'ER_DUP_ENTRY') throw new ConflictException('E-mail já cadastrado.');
+      if (error.code === '23505' || error.code === 'ER_DUP_ENTRY') {
+        throw new ConflictException('E-mail já cadastrado.');
+      }
       throw error;
     }
   }

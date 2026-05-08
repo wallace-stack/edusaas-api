@@ -24,8 +24,8 @@ export class SchoolsService {
       const school = this.schoolsRepository.create(data);
       return await this.schoolsRepository.save(school);
     } catch (error: any) {
-      if (error.code === 'ER_DUP_ENTRY') {
-        if (error.sqlMessage?.includes('email')) {
+      if (error.code === '23505' || error.code === 'ER_DUP_ENTRY') {
+        if (error.detail?.includes('email') || error.sqlMessage?.includes('email')) {
           throw new ConflictException('E-mail da escola já cadastrado.');
         }
         throw new ConflictException('CNPJ já cadastrado.');

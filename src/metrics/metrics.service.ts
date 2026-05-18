@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { User, UserRole } from '../users/user.entity';
 import { Grade } from '../grades/grade.entity';
 import { Attendance, AttendanceStatus } from '../attendance/attendance.entity';
 import { Tuition, TuitionStatus } from '../finance/tuition.entity';
+import { CashFlow, CashFlowType } from '../finance/cashflow.entity';
 import { Notification } from '../notifications/notification.entity';
 import { SchoolSubject } from '../classes/subject.entity';
 
@@ -19,6 +20,8 @@ export class MetricsService {
     private attendanceRepository: Repository<Attendance>,
     @InjectRepository(Tuition)
     private tuitionRepository: Repository<Tuition>,
+    @InjectRepository(CashFlow)
+    private cashFlowRepository: Repository<CashFlow>,
     @InjectRepository(Notification)
     private notificationsRepository: Repository<Notification>,
     @InjectRepository(SchoolSubject)
@@ -328,5 +331,86 @@ export class MetricsService {
       classAttendance,
       subjectAvgGrades,
     };
+  }
+
+  // CSV contabilidade — Nome, Turma, Valor, Status, Dt.Vencimento, Dt.Pagamento
+  async exportContabilidadeCsv(schoolId: number, month: number, year: number): Promise<string> {
+    const rows: any[] = await this.tuitionRepository.manager.query(
+      `SELECT u.name AS "studentName",
+              COALESCE(sc.name, '—') AS "className",
+              t.amount, t.status, t."dueDate", t."paidDate"
+       FROM tuition t
+       JOIN "user" u ON u.id = t."studentId"
+       LEFT JOIN enrollments e ON e."studentId" = t."studentId" AND e.year = $3
+       LEFT JOIN school_class sc ON sc.id = e."classId"
+       WHERE t."schoolId" = $1
+         AND EXTRACT(MONTH FROM t."dueDate") = $2
+         AND EXTRACT(YEAR FROM t."dueDate") = $3
+       ORDER BY u.name`,
+      [schoolId, month, year],
+    );
+
+    const statusLabel = (s: string) =>
+      ({ paid: 'Pago', overdue: 'Atrasado', pending: 'Pendente', cancelled: 'Cancelado' }[s] ?? s);
+    const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('pt-BR') : '';
+    const fmtVal  = (v: any) => Number(v).toFixed(2).replace('.', ',');
+
+    const header = 'Nome do Aluno;Turma;Valor;Status;Data Vencimento;Data Pagamento';
+    const lines = rows.map(r =>
+      [r.studentName, r.className, fmtVal(r.amount), statusLabel(r.status), fmtDate(r.dueDate), fmtDate(r.paidDate)].join(';')
+    );
+    return [header, ...lines].join('\n');
+  }
+
+  // CSV relatório completo — mensalidades + lançamentos de caixa do período
+  async exportCompletoCsv(schoolId: number, month: number, year: number): Promise<string> {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate   = new Date(year, month, 0);
+
+    const [tuitions, cashFlows] = await Promise.all([
+      this.tuitionRepository.manager.query(
+        `SELECT u.name AS "studentName",
+                COALESCE(sc.name, '—') AS "className",
+                t.amount, t.status, t."dueDate", t."paidDate",
+                t.reference, t."paymentMethod", t.notes
+         FROM tuition t
+         JOIN "user" u ON u.id = t."studentId"
+         LEFT JOIN enrollments e ON e."studentId" = t."studentId" AND e.year = $3
+         LEFT JOIN school_class sc ON sc.id = e."classId"
+         WHERE t."schoolId" = $1
+           AND EXTRACT(MONTH FROM t."dueDate") = $2
+           AND EXTRACT(YEAR FROM t."dueDate") = $3
+         ORDER BY t."dueDate", u.name`,
+        [schoolId, month, year],
+      ),
+      this.cashFlowRepository.find({
+        where: { schoolId, date: Between(startDate, endDate) as any },
+        order: { date: 'ASC' },
+      }),
+    ]);
+
+    const statusLabel   = (s: string) =>
+      ({ paid: 'Pago', overdue: 'Atrasado', pending: 'Pendente', cancelled: 'Cancelado' }[s] ?? s);
+    const paymentLabel  = (m: string) =>
+      ({ pix: 'PIX', credit_card: 'Crédito', debit_card: 'Débito', cash: 'Dinheiro', bank_slip: 'Boleto', other: 'Outro', card: 'Cartão' }[m] ?? (m ?? ''));
+    const typeLabel     = (t: string) => t === CashFlowType.INCOME ? 'Entrada' : 'Saída';
+    const categoryLabel = (c: string) =>
+      ({ tuition: 'Mensalidade', salary: 'Salário', maintenance: 'Manutenção', supplies: 'Material', other: 'Outros' }[c] ?? c);
+    const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('pt-BR') : '';
+    const fmtVal  = (v: any) => Number(v).toFixed(2).replace('.', ',');
+
+    const header = 'Tipo;Descrição;Turma;Referência;Valor;Status;Forma de Pagamento;Data;Data Pagamento;Observações';
+
+    const tuitionLines: string[] = (tuitions as any[]).map(r =>
+      ['Mensalidade', r.studentName, r.className, r.reference ?? '', fmtVal(r.amount),
+       statusLabel(r.status), paymentLabel(r.paymentMethod), fmtDate(r.dueDate), fmtDate(r.paidDate), r.notes ?? ''].join(';')
+    );
+
+    const cashFlowLines: string[] = cashFlows.map(c =>
+      [`${typeLabel(c.type)} — ${categoryLabel(c.category)}`, c.description, '', c.reference ?? '',
+       fmtVal(c.amount), '', '', fmtDate(c.date as any), '', ''].join(';')
+    );
+
+    return [header, ...tuitionLines, ...cashFlowLines].join('\n');
   }
 }

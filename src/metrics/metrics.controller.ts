@@ -1,4 +1,5 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { MetricsService } from './metrics.service';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -38,5 +39,41 @@ export class MetricsController {
   @Roles(UserRole.TEACHER)
   getTeacherDashboard(@CurrentUser() user: any) {
     return this.metricsService.getTeacherDashboard(user.userId, user.schoolId);
+  }
+
+  // Export CSV para contabilidade — Nome, Turma, Valor, Status, Dt.Vencimento, Dt.Pagamento
+  @Get('director/financial/export-contabilidade')
+  @Roles(UserRole.DIRECTOR)
+  async exportContabilidade(
+    @CurrentUser() user: any,
+    @Query('month') month: string,
+    @Query('year') year: string,
+    @Res() res: Response,
+  ) {
+    const m = month ? parseInt(month) : new Date().getMonth() + 1;
+    const y = year  ? parseInt(year)  : new Date().getFullYear();
+    const csv = await this.metricsService.exportContabilidadeCsv(user.schoolId, m, y);
+    const filename = `contabilidade-${y}-${String(m).padStart(2, '0')}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('﻿' + csv);
+  }
+
+  // Export CSV relatório completo — todas as mensalidades + lançamentos de caixa do período
+  @Get('director/financial/export-completo')
+  @Roles(UserRole.DIRECTOR)
+  async exportCompleto(
+    @CurrentUser() user: any,
+    @Query('month') month: string,
+    @Query('year') year: string,
+    @Res() res: Response,
+  ) {
+    const m = month ? parseInt(month) : new Date().getMonth() + 1;
+    const y = year  ? parseInt(year)  : new Date().getFullYear();
+    const csv = await this.metricsService.exportCompletoCsv(user.schoolId, m, y);
+    const filename = `relatorio-completo-${y}-${String(m).padStart(2, '0')}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('﻿' + csv);
   }
 }

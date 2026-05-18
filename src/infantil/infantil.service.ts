@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { InfantilRecord } from './infantil-record.entity';
 import { DiarioBordo } from './diario-bordo.entity';
 import { PlanejamentoDiario } from './planejamento-diario.entity';
@@ -27,7 +27,13 @@ export class InfantilService {
 
   async upsertRecord(dto: UpsertInfantilRecordDto, schoolId: number): Promise<InfantilRecord> {
     let record = await this.recordRepo.findOne({
-      where: { studentId: dto.studentId, classId: dto.classId, subjectId: dto.subjectId ?? null, period: dto.period, schoolId },
+      where: {
+        studentId: dto.studentId,
+        classId: dto.classId,
+        subjectId: dto.subjectId !== undefined ? dto.subjectId : IsNull(),
+        period: dto.period,
+        schoolId,
+      },
     });
     if (!record) {
       record = this.recordRepo.create({ ...dto, schoolId });

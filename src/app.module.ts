@@ -36,6 +36,7 @@ import { EnrollmentModule } from './enrollment/enrollment.module';
 import { Enrollment } from './enrollment/enrollment.entity';
 import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
 import { SupportModule } from './support/support.module';
+import { InfantilModule } from './infantil/infantil.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { SupportModule } from './support/support.module';
     EnrollmentModule,
     SeedModule, // TODO: remover antes do MVP
     SupportModule,
+    InfantilModule,
   ],
   controllers: [AppController],
   providers: [

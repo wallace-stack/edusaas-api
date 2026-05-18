@@ -2,6 +2,18 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Jo
 import { School } from '../schools/school.entity';
 import { SchoolSubject } from './subject.entity';
 
+export enum ClassMode {
+  REGULAR  = 'regular',
+  INFANTIL = 'infantil',
+}
+
+export interface InfantilConfig {
+  useConceito:      boolean;
+  useParecer:       boolean;
+  useDiarioBordo:   boolean;
+  usePlanejamento:  boolean;
+}
+
 @Entity()
 export class SchoolClass {
   @PrimaryGeneratedColumn()
@@ -21,6 +33,12 @@ export class SchoolClass {
 
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ type: 'enum', enum: ClassMode, default: ClassMode.REGULAR })
+  mode: ClassMode;
+
+  @Column({ type: 'jsonb', nullable: true })
+  infantilConfig: InfantilConfig | null;
 
   @ManyToOne(() => School)
   @JoinColumn({ name: 'schoolId' })

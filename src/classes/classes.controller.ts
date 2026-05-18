@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ClassesService } from './classes.service';
 import { CreateClassDto } from './dto/create-class.dto';
@@ -64,5 +64,15 @@ export class ClassesController {
     @CurrentUser() user: any,
   ) {
     return this.classesService.removeSubject(classId, subjectId, user.schoolId);
+  }
+
+  @Patch(':id/mode')
+  @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
+  updateMode(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { mode: 'regular' | 'infantil'; infantilConfig?: any },
+    @CurrentUser() user: any,
+  ) {
+    return this.classesService.updateMode(id, body.mode, body.infantilConfig, user.schoolId);
   }
 }

@@ -85,4 +85,17 @@ export class ClassesService {
     await this.SchoolSubjectsRepository.remove(subject);
     return { message: 'Disciplina removida com sucesso.' };
   }
+
+  async updateMode(
+    id: number,
+    mode: 'regular' | 'infantil',
+    infantilConfig: any,
+    schoolId: number,
+  ): Promise<SchoolClass> {
+    const schoolClass = await this.classesRepository.findOne({ where: { id, schoolId } });
+    if (!schoolClass) throw new NotFoundException('Turma não encontrada');
+    schoolClass.mode = mode as any;
+    schoolClass.infantilConfig = mode === 'infantil' ? (infantilConfig ?? { useConceito: true, useParecer: true, useDiarioBordo: false, usePlanejamento: false }) : null;
+    return this.classesRepository.save(schoolClass);
+  }
 }

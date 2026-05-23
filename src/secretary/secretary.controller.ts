@@ -31,7 +31,7 @@ import { UserRole } from '../users/user.entity';
 export class SecretaryController {
   constructor(private readonly secretaryService: SecretaryService) {}
 
-  // Dashboard operacional da secretária
+  // Dashboard operacional da secretaria
   @Get('dashboard')
   getDashboard(@CurrentUser() user: any) {
     return this.secretaryService.getDashboard(user.schoolId);

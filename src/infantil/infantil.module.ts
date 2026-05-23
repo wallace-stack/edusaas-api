@@ -5,9 +5,13 @@ import { InfantilController } from './infantil.controller';
 import { InfantilRecord } from './infantil-record.entity';
 import { DiarioBordo } from './diario-bordo.entity';
 import { PlanejamentoDiario } from './planejamento-diario.entity';
+import { SchoolsModule } from '../schools/schools.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([InfantilRecord, DiarioBordo, PlanejamentoDiario])],
+  imports: [
+    TypeOrmModule.forFeature([InfantilRecord, DiarioBordo, PlanejamentoDiario]),
+    SchoolsModule,
+  ],
   controllers: [InfantilController],
   providers: [InfantilService],
 })

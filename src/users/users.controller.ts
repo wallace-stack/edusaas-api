@@ -13,7 +13,7 @@ import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // Apenas coordenador, secretária e diretor podem listar usuários
+  // Apenas coordenador, secretaria e diretor podem listar usuários
   @Get()
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
   findAll(
@@ -53,7 +53,7 @@ export class UsersController {
     return this.usersService.update(user.userId, user.schoolId, safeData);
   }
 
-  // Detalhes completos de um aluno (coordenador/diretor/secretária/professor)
+  // Detalhes completos de um aluno (coordenador/diretor/secretaria/professor)
   @Get(':id/profile-detail')
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY, UserRole.TEACHER)
   getProfileDetail(

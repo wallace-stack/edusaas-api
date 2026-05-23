@@ -54,7 +54,7 @@ export class SecretaryService {
     private mailService: MailService,
   ) {}
 
-  // Dashboard da secretária — visão operacional
+  // Dashboard da secretaria — visão operacional
   async getDashboard(schoolId: number): Promise<any> {
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -542,7 +542,7 @@ export class SecretaryService {
     schoolId: number,
   ): Promise<any> {
     if (dto.role === UserRole.DIRECTOR) {
-      throw new ForbiddenException('Secretária não pode criar usuário com papel de Diretor.');
+      throw new ForbiddenException('Secretaria não pode criar usuário com papel de Diretor.');
     }
 
     const user = await this.usersService.create({ ...dto, schoolId });
@@ -741,7 +741,7 @@ export class SecretaryService {
     const user = await this.usersRepository.findOne({ where: { id, schoolId } });
     if (!user) throw new NotFoundException('Usuário não encontrado.');
     if (user.role === UserRole.DIRECTOR) {
-      throw new ForbiddenException('Secretária não pode desativar o Diretor.');
+      throw new ForbiddenException('Secretaria não pode desativar o Diretor.');
     }
     await this.usersService.remove(id, schoolId);
     return { message: 'Usuário desativado com sucesso.' };

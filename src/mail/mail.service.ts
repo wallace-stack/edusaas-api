@@ -185,6 +185,53 @@ export class MailService {
     }
   }
 
+  async sendPlanRenewal(
+    schoolName: string,
+    email: string,
+    name: string,
+    planLabel: string,
+    nextDueDate: string | null,
+    amountPaid: number,
+  ) {
+    const firstName = name.split(' ')[0];
+    const formattedDate = nextDueDate
+      ? new Date(nextDueDate + 'T12:00:00').toLocaleDateString('pt-BR')
+      : '—';
+    const formattedValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amountPaid);
+
+    const content = `
+      <h1 style="color:#1E3A5F;font-size:24px;font-weight:700;margin:0 0 8px;">Renovação confirmada! ✅</h1>
+      <p style="color:#64748b;font-size:15px;margin:0 0 24px;">Olá, <strong style="color:#1E3A5F;">${firstName}</strong>! O pagamento da <strong>${schoolName}</strong> foi confirmado com sucesso.</p>
+      <div style="background:#F0F4F8;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+        <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Detalhes da renovação</p>
+        <p style="margin:0 0 8px;font-size:15px;color:#1E3A5F;"><strong>Plano:</strong> ${planLabel}</p>
+        <p style="margin:0 0 8px;font-size:15px;color:#1E3A5F;"><strong>Valor pago:</strong> ${formattedValue}</p>
+        <p style="margin:0;font-size:15px;color:#1E3A5F;"><strong>Próximo vencimento:</strong> ${formattedDate}</p>
+      </div>
+      <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:16px 20px;margin-bottom:24px;">
+        <p style="margin:0;font-size:14px;color:#166534;">🔓 Seu acesso continua ativo. Obrigado pela confiança!</p>
+      </div>
+      ${this.btnPrimary('https://edusaas-web-xi.vercel.app/login', 'Acessar o Walladm →')}
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0 24px;">
+      <p style="color:#94a3b8;font-size:13px;margin:0;text-align:center;">Qualquer dúvida, responda este e-mail. 💙</p>
+    `;
+    try {
+      if (!this.resend) {
+        this.logger.warn('[Mail] E-mail não enviado — Resend não configurado');
+        return;
+      }
+      await this.resend.emails.send({
+        from: this.from,
+        to: email,
+        subject: `✅ Renovação confirmada — Plano ${planLabel} até ${formattedDate}`,
+        html: this.baseTemplate('Renovação confirmada', content),
+      });
+      this.logger.log(`[Mail] Renovação de plano enviada para ${email}`);
+    } catch (error) {
+      this.logger.error(`[Mail] Erro renovação de plano para ${email}:`, error);
+    }
+  }
+
   async sendPasswordReset(email: string, name: string, resetToken: string) {
     const firstName = name.split(' ')[0];
     const resetUrl = `https://edusaas-web-xi.vercel.app/nova-senha?token=${resetToken}`;

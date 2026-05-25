@@ -101,6 +101,11 @@ export class SchoolsService {
     return this.schoolsRepository.findOne({ where: { id: schoolId } });
   }
 
+  // Busca escola pelo ID da assinatura Asaas — usado pelo webhook
+  async findBySubscriptionId(subscriptionId: string): Promise<School | null> {
+    return this.schoolsRepository.findOne({ where: { asaasSubscriptionId: subscriptionId } });
+  }
+
   async updatePaymentConfig(
     schoolId: number,
     data: { pixKey?: string; pixKeyType?: string; paymentInfo?: string; paymentLink?: string },

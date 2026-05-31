@@ -196,46 +196,86 @@ export class MetricsService {
     };
   }
 
-  // Dashboard financeiro do diretor
+  // Dashboard financeiro do diretor — dados reais do banco
   async getFinancialDashboard(schoolId: number): Promise<any> {
-    const mensalidadeUnitaria = 800;
-    const months = ['Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar'];
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const monthNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-    const students: { id: number; name: string; className: string | null }[] =
-      await this.usersRepository.manager.query(
-        `SELECT u.id, u.name, sc.name AS "className"
-         FROM "user" u
-         LEFT JOIN "enrollments" e ON e."studentId" = u.id AND e.year = 2026
-         LEFT JOIN school_class sc ON sc.id = e."classId"
-         WHERE u."schoolId" = $1 AND u.role = 'student' AND u."isActive" = true
-         ORDER BY u.name`,
-        [schoolId],
-      );
+    // Alunos ativos com turma do ano atual
+    const students: any[] = await this.usersRepository.manager.query(
+      `SELECT u.id, u.name, COALESCE(sc.name, '—') AS "className"
+       FROM "user" u
+       LEFT JOIN enrollments e ON e."studentId" = u.id AND e.year = $2
+       LEFT JOIN school_class sc ON sc.id = e."classId"
+       WHERE u."schoolId" = $1 AND u.role = 'student' AND u."isActive" = true
+       ORDER BY u.name`,
+      [schoolId, currentYear],
+    );
+
+    // Todas as mensalidades da escola
+    const allTuitions = await this.tuitionRepository.find({ where: { schoolId } });
+
+    // Mensalidades do mês atual por aluno
+    const currentMonthMap: Record<number, typeof allTuitions[0]> = {};
+    allTuitions.forEach(t => {
+      const d = new Date(t.dueDate);
+      if (d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear) {
+        currentMonthMap[t.studentId] = t;
+      }
+    });
+
+    // Status real por aluno (mês atual)
+    const studentsWithStatus = students.map(s => {
+      const t = currentMonthMap[s.id];
+      return {
+        id: s.id,
+        name: s.name,
+        className: s.className,
+        paymentStatus: t
+          ? (t.status === TuitionStatus.PAID    ? 'Em dia'
+           : t.status === TuitionStatus.OVERDUE ? 'Inadimplente'
+           : 'Pendente')
+          : 'Sem mensalidade',
+        valor: t ? Number(t.amount) : 0,
+      };
+    });
+
+    // Métricas do mês atual
+    const currentMonthList = Object.values(currentMonthMap);
+    const mensalidadeUnitaria = currentMonthList.length > 0
+      ? Math.round(currentMonthList.reduce((s, t) => s + Number(t.amount), 0) / currentMonthList.length)
+      : 0;
+    const totalEsperado = Math.round(currentMonthList.reduce((s, t) => s + Number(t.amount), 0));
+
+    // Métricas gerais (todas as mensalidades)
+    const paidAll = allTuitions.filter(t => t.status === TuitionStatus.PAID);
+    const overdueAll = allTuitions.filter(t => t.status === TuitionStatus.OVERDUE);
+    const totalRecebido = Math.round(paidAll.reduce((s, t) => s + Number(t.amount), 0));
+    const totalInadimplente = Math.round(overdueAll.reduce((s, t) => s + Number(t.amount), 0));
 
     const totalStudents = students.length;
-    const totalEsperado = totalStudents * mensalidadeUnitaria;
-
-    const studentsWithStatus = students.map((s, i) => ({
-      id: s.id,
-      name: s.name,
-      className: s.className ?? '—',
-      paymentStatus: i % 6 === 0 ? 'Inadimplente' : 'Em dia',
-      valor: mensalidadeUnitaria,
-    }));
-
+    const adimplentes = studentsWithStatus.filter(s => s.paymentStatus === 'Em dia').length;
     const inadimplentes = studentsWithStatus.filter(s => s.paymentStatus === 'Inadimplente').length;
-    const adimplentes = totalStudents - inadimplentes;
-    const totalRecebido = adimplentes * mensalidadeUnitaria;
-    const totalInadimplente = inadimplentes * mensalidadeUnitaria;
-    const taxaAdimplencia = totalStudents > 0
-      ? Math.round((adimplentes / totalStudents) * 100)
-      : 0;
+    const taxaAdimplencia = totalStudents > 0 ? Math.round((adimplentes / totalStudents) * 100) : 0;
 
-    const faturamentoMensal = months.map((mes, i) => ({
-      mes,
-      recebido: Math.round(totalEsperado * (0.76 + i * 0.04)),
-      esperado: totalEsperado,
-    }));
+    // Faturamento mensal — últimos 6 meses
+    const faturamentoMensal: { mes: string; recebido: number; esperado: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(currentYear, currentMonth - 1 - i, 1);
+      const m = d.getMonth() + 1;
+      const y = d.getFullYear();
+      const monthTuitions = allTuitions.filter(t => {
+        const td = new Date(t.dueDate);
+        return td.getMonth() + 1 === m && td.getFullYear() === y;
+      });
+      faturamentoMensal.push({
+        mes: `${monthNames[m - 1]}/${String(y).slice(2)}`,
+        recebido: Math.round(monthTuitions.filter(t => t.status === TuitionStatus.PAID).reduce((s, t) => s + Number(t.amount), 0)),
+        esperado: Math.round(monthTuitions.reduce((s, t) => s + Number(t.amount), 0)),
+      });
+    }
 
     return {
       totalStudents,
@@ -297,7 +337,7 @@ export class MetricsService {
         `SELECT ss.name AS "subjectName",
                 ROUND(AVG(g.value), 1) AS "avgGrade"
          FROM grade g
-         JOIN school_subject ss ON ss.id = g."subjectId"
+         JOIN subjects ss ON ss.id = g."subjectId"
          WHERE g."schoolId" = $1 AND ss."teacherId" = $2
          GROUP BY ss.name ORDER BY ss.name`,
         [schoolId, teacherId],

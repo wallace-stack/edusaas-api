@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, ParseIntPipe, UseGua
 import { AuthGuard } from '@nestjs/passport';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
+import { CreateSystemMessageDto, UpdateSystemMessageDto } from './dto/system-message.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -66,5 +67,34 @@ export class NotificationsController {
     @CurrentUser() user: any,
   ) {
     return this.notificationsService.remove(id, user.schoolId, user.userId, user.role);
+  }
+
+  // ── Mensagens carinhosas programadas (apenas diretor) ─────────────────
+
+  @Get('system-messages')
+  @Roles(UserRole.DIRECTOR)
+  listSystemMessages() {
+    return this.notificationsService.listSystemMessages();
+  }
+
+  @Post('system-messages')
+  @Roles(UserRole.DIRECTOR)
+  createSystemMessage(@Body() dto: CreateSystemMessageDto) {
+    return this.notificationsService.createSystemMessage(dto);
+  }
+
+  @Patch('system-messages/:id')
+  @Roles(UserRole.DIRECTOR)
+  updateSystemMessage(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateSystemMessageDto,
+  ) {
+    return this.notificationsService.updateSystemMessage(id, dto);
+  }
+
+  @Patch('system-messages/:id/toggle')
+  @Roles(UserRole.DIRECTOR)
+  toggleSystemMessage(@Param('id', ParseIntPipe) id: number) {
+    return this.notificationsService.toggleSystemMessage(id);
   }
 }

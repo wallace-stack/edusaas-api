@@ -2,7 +2,10 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification, NotificationTarget, NotificationType } from './notification.entity';
+import { SystemMessage } from './system-message.entity';
+import { UserSystemMessage } from './user-system-message.entity';
 import { CreateNotificationDto } from './dto/create-notification.dto';
+import { CreateSystemMessageDto, UpdateSystemMessageDto } from './dto/system-message.dto';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { UserRole } from '../users/user.entity';
 
@@ -11,6 +14,10 @@ export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private notificationsRepository: Repository<Notification>,
+    @InjectRepository(SystemMessage)
+    private systemMessageRepo: Repository<SystemMessage>,
+    @InjectRepository(UserSystemMessage)
+    private userSystemMessageRepo: Repository<UserSystemMessage>,
     private enrollmentService: EnrollmentService,
   ) {}
 
@@ -84,9 +91,10 @@ export class NotificationsService {
         { allStudents: NotificationTarget.ALL_STUDENTS, allSchool: NotificationTarget.ALL_SCHOOL, student: NotificationTarget.STUDENT, userId, class: NotificationTarget.CLASS, classId },
       );
     } else if (role === UserRole.TEACHER) {
+      // SPECIFIC inclui mensagens carinhosas programadas enviadas individualmente
       qb.andWhere(
-        '(n.target = :allSchool OR (n.target = :class AND n.createdById = :userId))',
-        { allSchool: NotificationTarget.ALL_SCHOOL, class: NotificationTarget.CLASS, userId },
+        '(n.target = :allSchool OR (n.target = :class AND n.createdById = :userId) OR (n.target = :specific AND n.targetUserId = :userId))',
+        { allSchool: NotificationTarget.ALL_SCHOOL, class: NotificationTarget.CLASS, userId, specific: NotificationTarget.SPECIFIC },
       );
     } else {
       qb.andWhere(
@@ -110,9 +118,10 @@ export class NotificationsService {
         { allStudents: NotificationTarget.ALL_STUDENTS, allSchool: NotificationTarget.ALL_SCHOOL, student: NotificationTarget.STUDENT, userId, class: NotificationTarget.CLASS, classId },
       );
     } else if (role === UserRole.TEACHER) {
+      // SPECIFIC inclui mensagens carinhosas programadas enviadas individualmente
       qb.andWhere(
-        `(${p}target = :allSchool OR (${p}target = :class AND ${p}createdById = :userId))`,
-        { allSchool: NotificationTarget.ALL_SCHOOL, class: NotificationTarget.CLASS, userId },
+        `(${p}target = :allSchool OR (${p}target = :class AND ${p}createdById = :userId) OR (${p}target = :specific AND ${p}targetUserId = :userId))`,
+        { allSchool: NotificationTarget.ALL_SCHOOL, class: NotificationTarget.CLASS, userId, specific: NotificationTarget.SPECIFIC },
       );
     } else {
       // director / coordinator / secretary
@@ -147,5 +156,42 @@ export class NotificationsService {
     }
     await this.notificationsRepository.remove(notification);
     return { message: 'Notificação removida com sucesso.' };
+  }
+
+  // ── CRUD de mensagens carinhosas (apenas diretor) ─────────────────────
+
+  async listSystemMessages(): Promise<Array<SystemMessage & { sentCount: number }>> {
+    const messages = await this.systemMessageRepo.find({ order: { createdAt: 'DESC' } });
+
+    const results = await Promise.all(
+      messages.map(async (msg) => {
+        const sentCount = await this.userSystemMessageRepo.count({ where: { messageId: msg.id } });
+        return { ...msg, sentCount };
+      }),
+    );
+
+    return results;
+  }
+
+  async createSystemMessage(dto: CreateSystemMessageDto): Promise<SystemMessage> {
+    const msg = this.systemMessageRepo.create({
+      ...dto,
+      isActive: dto.isActive ?? true,
+    });
+    return this.systemMessageRepo.save(msg);
+  }
+
+  async updateSystemMessage(id: number, dto: UpdateSystemMessageDto): Promise<SystemMessage> {
+    const msg = await this.systemMessageRepo.findOne({ where: { id } });
+    if (!msg) throw new NotFoundException('Mensagem não encontrada.');
+    Object.assign(msg, dto);
+    return this.systemMessageRepo.save(msg);
+  }
+
+  async toggleSystemMessage(id: number): Promise<SystemMessage> {
+    const msg = await this.systemMessageRepo.findOne({ where: { id } });
+    if (!msg) throw new NotFoundException('Mensagem não encontrada.');
+    msg.isActive = !msg.isActive;
+    return this.systemMessageRepo.save(msg);
   }
 }

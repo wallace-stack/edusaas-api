@@ -1,8 +1,11 @@
 import {
-  Controller, Get, Post, Patch, Body, Param,
+  Controller, Get, Post, Patch, Delete, Body, Param,
   ParseIntPipe, UseGuards, Query,
+  UseInterceptors, UploadedFiles,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { TeachingPlansService } from './teaching-plans.service';
 import { CreateTeachingPlanDto } from './dto/create-teaching-plan.dto';
 import { UpdateTeachingPlanDto } from './dto/update-teaching-plan.dto';
@@ -51,14 +54,48 @@ export class TeachingPlansController {
     return this.teachingPlansService.update(id, dto, user.userId, user.schoolId);
   }
 
-  /** Envia para gestão */
+  /** Envia para gestão (draft → sent) */
   @Patch(':id/send')
   @Roles(UserRole.TEACHER)
-  send(
+  send(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    return this.teachingPlansService.send(id, user.userId, user.schoolId);
+  }
+
+  /** Upload de anexos (máx 5 arquivos, 5 MB cada) */
+  @Post(':id/attachments')
+  @Roles(UserRole.TEACHER)
+  @UseInterceptors(
+    FilesInterceptor('files', 5, {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+      // Validação básica pelo nome — magic bytes é feita no service
+      fileFilter: (_req, file, cb) => {
+        const ext = file.originalname.toLowerCase().split('.').pop();
+        if (['jpg', 'jpeg', 'png', 'pdf'].includes(ext ?? '')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Apenas arquivos JPG, PNG e PDF são aceitos'), false);
+        }
+      },
+    }),
+  )
+  addAttachments(
     @Param('id', ParseIntPipe) id: number,
+    @UploadedFiles() files: Express.Multer.File[],
     @CurrentUser() user: any,
   ) {
-    return this.teachingPlansService.send(id, user.userId, user.schoolId);
+    return this.teachingPlansService.addAttachments(id, files, user.userId, user.schoolId);
+  }
+
+  /** Remove um anexo específico */
+  @Delete(':id/attachments/:fileId')
+  @Roles(UserRole.TEACHER)
+  removeAttachment(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('fileId') fileId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.teachingPlansService.removeAttachment(id, fileId, user.userId, user.schoolId);
   }
 
   // ── Gestão ────────────────────────────────────────────────────────────────
@@ -73,20 +110,14 @@ export class TeachingPlansController {
   /** Visualiza (auto-marca como lido) */
   @Get(':id')
   @Roles(...MANAGEMENT_ROLES)
-  findOne(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: any,
-  ) {
+  findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
     return this.teachingPlansService.findOne(id, user.userId, user.schoolId);
   }
 
   /** Marca como revisado */
   @Patch(':id/review')
   @Roles(...MANAGEMENT_ROLES)
-  review(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: any,
-  ) {
+  review(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
     return this.teachingPlansService.review(id, user.userId, user.schoolId);
   }
 }

@@ -9,6 +9,7 @@ import { SchoolsModule } from '../schools/schools.module';
   imports: [
     TypeOrmModule.forFeature([TeachingPlan]),
     SchoolsModule,
+    // CloudinaryModule é @Global — injetado automaticamente
   ],
   controllers: [TeachingPlansController],
   providers: [TeachingPlansService],

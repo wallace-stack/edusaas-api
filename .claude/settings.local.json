@@ -5,9 +5,10 @@
       "Bash(npm run:*)",
       "Bash(echo \"EXIT:$?\")",
       "Bash(npx tsc:*)",
-''      "Bash(npm ls:*)",
+      "Bash(npm ls:*)",
       "Bash(npm info:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "PowerShell(Get-ChildItem C:\\\\Dev\\\\edusaas-web\\\\app\\\\dashboard -Recurse | Where-Object { $_.Name -match \"layout|header|nav|sidebar|topbar\" } | Select-Object FullName)"
     ]
   }
 }

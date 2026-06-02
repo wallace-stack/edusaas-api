@@ -215,6 +215,18 @@ export class FeedService {
 
   private async validateTeacherInClass(classId: number, teacherId: number, schoolId: number): Promise<void> {
     const subjects = await this.classesService.findSubjectsByClass(classId, schoolId);
+
+    if (subjects.length === 0) {
+      // Turmas em modo infantil podem não ter disciplinas cadastradas.
+      // Verificamos se a turma pertence à escola — se sim, o professor pode postar.
+      const schoolClass = await this.classesService.findOneClass(classId, schoolId);
+      if (!schoolClass) {
+        throw new ForbiddenException('Professor não está vinculado a esta turma.');
+      }
+      // Turma infantil sem disciplinas: professor da escola tem permissão de postar
+      return;
+    }
+
     const teaches = subjects.some((s) => s.teacherId === teacherId);
     if (!teaches) {
       throw new ForbiddenException('Professor não está vinculado a esta turma.');

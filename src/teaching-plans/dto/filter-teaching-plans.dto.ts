@@ -1,6 +1,6 @@
 import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TeachingPlanStatus } from '../teaching-plan.entity';
+import { TeachingPlanStatus, PeriodType, ModuleType } from '../teaching-plan.entity';
 
 export class FilterTeachingPlansDto {
   @IsOptional()
@@ -20,4 +20,12 @@ export class FilterTeachingPlansDto {
   @IsOptional()
   @IsEnum(TeachingPlanStatus)
   status?: TeachingPlanStatus;
+
+  @IsOptional()
+  @IsEnum(PeriodType)
+  periodType?: PeriodType;
+
+  @IsOptional()
+  @IsEnum(ModuleType)
+  moduleType?: ModuleType;
 }

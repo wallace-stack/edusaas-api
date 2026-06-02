@@ -11,8 +11,10 @@ export class CreateAttendanceDto {
   @IsNumber()
   studentId!: number;
 
+  // Opcional para turmas em modo infantil (sem disciplinas formais)
+  @IsOptional()
   @IsNumber()
-  subjectId!: number;
+  subjectId?: number;
 
   @IsNumber()
   classId!: number;

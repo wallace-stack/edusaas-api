@@ -8,8 +8,10 @@ export class CreateNotificationDto {
   @IsString()
   message!: string;
 
+  // Opcional: o service defaults para CLASS_NOTICE em avisos de turma
+  @IsOptional()
   @IsEnum(NotificationType)
-  type!: NotificationType;
+  type?: NotificationType;
 
   @IsOptional()
   @IsEnum(NotificationTarget)

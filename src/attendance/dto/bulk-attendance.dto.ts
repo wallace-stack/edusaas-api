@@ -1,4 +1,4 @@
-import { IsNumber, IsDateString, IsArray, ValidateNested, IsEnum } from 'class-validator';
+import { IsNumber, IsDateString, IsArray, ValidateNested, IsEnum, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AttendanceStatus } from '../attendance.entity';
 
@@ -14,8 +14,10 @@ export class BulkAttendanceDto {
   @IsDateString()
   date!: string;
 
+  // Opcional para turmas em modo infantil (sem disciplinas formais)
+  @IsOptional()
   @IsNumber()
-  subjectId!: number;
+  subjectId?: number;
 
   @IsNumber()
   classId!: number;

@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notification, NotificationTarget } from './notification.entity';
+import { Notification, NotificationTarget, NotificationType } from './notification.entity';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { EnrollmentService } from '../enrollment/enrollment.service';
 import { UserRole } from '../users/user.entity';
@@ -31,6 +31,8 @@ export class NotificationsService {
 
     const notification = this.notificationsRepository.create({
       ...dto,
+      // Padrão CLASS_NOTICE quando o frontend (ex: módulo infantil) não envia type
+      type: dto.type ?? NotificationType.CLASS_NOTICE,
       schoolId,
       createdById,
     });

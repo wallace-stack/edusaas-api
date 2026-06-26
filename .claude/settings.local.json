@@ -8,7 +8,13 @@
       "Bash(npm ls:*)",
       "Bash(npm info:*)",
       "Bash(npm uninstall:*)",
-      "PowerShell(Get-ChildItem C:\\\\Dev\\\\edusaas-web\\\\app\\\\dashboard -Recurse | Where-Object { $_.Name -match \"layout|header|nav|sidebar|topbar\" } | Select-Object FullName)"
+      "PowerShell(Get-ChildItem C:\\\\Dev\\\\edusaas-web\\\\app\\\\dashboard -Recurse | Where-Object { $_.Name -match \"layout|header|nav|sidebar|topbar\" } | Select-Object FullName)",
+      "Bash(find /c/Dev/edusaas-web -type f -name \"*.tsx\" -o -name \"*.ts\" | grep -v node_modules | grep -v \".next\" | sort | head -80)",
+      "Read(//c/Dev/edusaas-web/**)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Dev\\\\wallabuy\" -Recurse -Filter \"db.ts\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -First 5)",
+      "Bash(xargs grep -l \"type User\\\\|interface User\")",
+      "Bash(npx next *)"
     ]
   }
 }

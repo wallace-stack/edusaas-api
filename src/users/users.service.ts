@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
 import { User, UserRole } from './user.entity';
@@ -6,6 +6,7 @@ import { SchoolSubject } from '../classes/subject.entity';
 import { Enrollment, EnrollmentStatus } from '../enrollment/enrollment.entity';
 import { GradesService } from '../grades/grades.service';
 import { AttendanceService } from '../attendance/attendance.service';
+import { PermissionsService } from '../permissions/permissions.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -19,8 +20,27 @@ export class UsersService {
     private enrollmentRepository: Repository<Enrollment>,
     private gradesService: GradesService,
     private attendanceService: AttendanceService,
+    @Inject(forwardRef(() => PermissionsService))
+    private permissionsService: PermissionsService,
   ) { }
 
+  /** Busca um usuário pelo e-mail dentro de uma escola específica (multi-tenancy). */
+  async findByEmailAndSchool(email: string, schoolId: number): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { email, schoolId }, relations: ['school'] });
+  }
+
+  /**
+   * Retorna TODOS os usuários com o e-mail informado (pode haver um por escola).
+   * Usado no login e no forgot-password para detectar o cenário multi-escola.
+   */
+  async findAllByEmail(email: string): Promise<User[]> {
+    return this.usersRepository.find({ where: { email }, relations: ['school'] });
+  }
+
+  /**
+   * @deprecated Use findByEmailAndSchool() ou findAllByEmail() em vez disso.
+   * Mantido apenas para evitar quebra em chamadas legadas que possam existir.
+   */
   async findByEmail(email: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { email }, relations: ['school'] });
   }
@@ -214,10 +234,21 @@ export class UsersService {
     try {
       const hashedPassword = await bcrypt.hash(data.password!, 10);
       const user = this.usersRepository.create({ ...data, password: hashedPassword });
-      return await this.usersRepository.save(user);
+      const saved = await this.usersRepository.save(user);
+
+      // Seed das permissões padrão para o role do novo usuário (não bloqueia em caso de erro)
+      this.permissionsService
+        .createDefaultPermissions(saved.id, saved.role, saved.schoolId)
+        .catch((err) =>
+          console.error(`[PermissionsService] Erro ao criar permissões para userId=${saved.id}:`, err),
+        );
+
+      return saved;
     } catch (error: any) {
       if (error.code === '23505' || error.code === 'ER_DUP_ENTRY') {
-        throw new ConflictException('E-mail já cadastrado.');
+        // A constraint composta (email, schoolId) garante que o erro é específico
+        // desta escola — nunca mais um bloqueio global entre escolas diferentes.
+        throw new ConflictException('Este e-mail já está cadastrado nesta escola.');
       }
       throw error;
     }

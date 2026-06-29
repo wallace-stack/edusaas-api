@@ -38,6 +38,7 @@ import { SeedModule } from './seed/seed.module'; // TODO: remover antes do MVP
 import { SupportModule } from './support/support.module';
 import { InfantilModule } from './infantil/infantil.module';
 import { TeachingPlansModule } from './teaching-plans/teaching-plans.module';
+import { PermissionsModule } from './permissions/permissions.module';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { TeachingPlansModule } from './teaching-plans/teaching-plans.module';
     SupportModule,
     InfantilModule,
     TeachingPlansModule,
+    PermissionsModule,
   ],
   controllers: [AppController],
   providers: [

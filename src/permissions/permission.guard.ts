@@ -14,7 +14,13 @@ import { UserRole } from '../users/user.entity';
  * Guard de permissão granular.
  * Deve ser adicionado DEPOIS de AuthGuard('jwt') e RolesGuard nas rotas que o usam.
  * Se não houver @RequirePermission() na rota, o guard passa sem verificar.
- * DIRECTOR sempre passa — nunca é bloqueado por esta camada.
+ *
+ * Roles que estão FORA do sistema de permissões granulares (fase 1):
+ *   - DIRECTOR  → sempre tem tudo, nunca bloqueado
+ *   - TEACHER   → usa apenas @Roles(), sem camada extra de permissão
+ *   - STUDENT   → usa apenas @Roles(), sem camada extra de permissão
+ *
+ * Roles sujeitos ao check granular: COORDINATOR e SECRETARY.
  */
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -34,8 +40,15 @@ export class PermissionGuard implements CanActivate {
 
     const { user } = context.switchToHttp().getRequest();
 
-    // DIRECTOR tem acesso total, sempre
-    if (user.role === UserRole.DIRECTOR) return true;
+    // DIRECTOR, TEACHER e STUDENT não passam por verificação granular:
+    // continuam protegidos apenas pelo @Roles() existente.
+    if (
+      user.role === UserRole.DIRECTOR ||
+      user.role === UserRole.TEACHER ||
+      user.role === UserRole.STUDENT
+    ) {
+      return true;
+    }
 
     const granted = await this.permissionsService.hasPermission(
       user.userId,

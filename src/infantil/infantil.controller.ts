@@ -13,6 +13,9 @@ import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
+import { PermissionGuard } from '../permissions/permission.guard';
+import { RequirePermission } from '../permissions/decorators/require-permission.decorator';
+import { PermissionKey } from '../permissions/user-permission.entity';
 
 @UseGuards(AuthGuard('jwt'), SchoolAccessGuard, RolesGuard)
 @Controller('infantil')
@@ -27,8 +30,11 @@ export class InfantilController {
     return this.infantilService.upsertRecord(dto, user.schoolId);
   }
 
+  // TEACHER bypassa o PermissionGuard — continua acessando normalmente (fase 1)
   @Get('records')
   @Roles(UserRole.TEACHER, UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.CONFIGURAR_MODULO_INFANTIL)
+  @UseGuards(PermissionGuard)
   getRecordsByClass(
     @Query('classId', ParseIntPipe) classId: number,
     @Query('period', ParseIntPipe) period: number,
@@ -39,6 +45,8 @@ export class InfantilController {
 
   @Get('records/student/:studentId')
   @Roles(UserRole.TEACHER, UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.CONFIGURAR_MODULO_INFANTIL)
+  @UseGuards(PermissionGuard)
   getRecordsByStudent(
     @Param('studentId', ParseIntPipe) studentId: number,
     @Query('classId', ParseIntPipe) classId: number,
@@ -57,6 +65,8 @@ export class InfantilController {
 
   @Get('diario')
   @Roles(UserRole.TEACHER, UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.CONFIGURAR_MODULO_INFANTIL)
+  @UseGuards(PermissionGuard)
   getDiario(
     @Query('classId', ParseIntPipe) classId: number,
     @CurrentUser() user: any,
@@ -90,6 +100,8 @@ export class InfantilController {
 
   @Get('planejamento')
   @Roles(UserRole.TEACHER, UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.CONFIGURAR_MODULO_INFANTIL)
+  @UseGuards(PermissionGuard)
   getPlanejamento(
     @Query('classId', ParseIntPipe) classId: number,
     @CurrentUser() user: any,

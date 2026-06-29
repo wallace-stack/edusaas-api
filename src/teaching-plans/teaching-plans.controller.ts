@@ -15,6 +15,9 @@ import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
+import { PermissionGuard } from '../permissions/permission.guard';
+import { RequirePermission } from '../permissions/decorators/require-permission.decorator';
+import { PermissionKey } from '../permissions/user-permission.entity';
 
 const MANAGEMENT_ROLES = [
   UserRole.COORDINATOR,
@@ -103,6 +106,8 @@ export class TeachingPlansController {
   /** Lista todos com filtros */
   @Get()
   @Roles(...MANAGEMENT_ROLES)
+  @RequirePermission(PermissionKey.RECEBER_CADERNO_PLANEJAMENTO)
+  @UseGuards(PermissionGuard)
   findAll(@CurrentUser() user: any, @Query() filters: FilterTeachingPlansDto) {
     return this.teachingPlansService.findAll(user.schoolId, filters);
   }
@@ -110,6 +115,8 @@ export class TeachingPlansController {
   /** Visualiza (auto-marca como lido) */
   @Get(':id')
   @Roles(...MANAGEMENT_ROLES)
+  @RequirePermission(PermissionKey.RECEBER_CADERNO_PLANEJAMENTO)
+  @UseGuards(PermissionGuard)
   findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
     return this.teachingPlansService.findOne(id, user.userId, user.schoolId);
   }
@@ -117,6 +124,8 @@ export class TeachingPlansController {
   /** Marca como revisado */
   @Patch(':id/review')
   @Roles(...MANAGEMENT_ROLES)
+  @RequirePermission(PermissionKey.RECEBER_CADERNO_PLANEJAMENTO)
+  @UseGuards(PermissionGuard)
   review(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
     return this.teachingPlansService.review(id, user.userId, user.schoolId);
   }

@@ -7,6 +7,9 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from './user.entity';
 import { SchoolAccessGuard } from '../common/guards/school-access.guard';
+import { PermissionGuard } from '../permissions/permission.guard';
+import { RequirePermission } from '../permissions/decorators/require-permission.decorator';
+import { PermissionKey } from '../permissions/user-permission.entity';
 
 @UseGuards(AuthGuard('jwt'), SchoolAccessGuard, RolesGuard)
 @Controller('users')
@@ -16,6 +19,8 @@ export class UsersController {
   // Apenas coordenador, secretaria e diretor podem listar usuários
   @Get()
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.EDITAR_USUARIO)
+  @UseGuards(PermissionGuard)
   findAll(
     @CurrentUser() user: any,
     @Query('role') role?: UserRole,
@@ -24,8 +29,13 @@ export class UsersController {
   }
 
   // Diretor, coordenador e secretaria podem criar usuários
+  // Nota: editar_aluno (criação de student) vs editar_usuario (criação de staff)
+  // não é distinguível a nível de rota — requer validação no service (próxima fase).
+  // Aplicamos editar_usuario como permissão base para criação de qualquer usuário.
   @Post()
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.EDITAR_USUARIO)
+  @UseGuards(PermissionGuard)
   create(
     @CurrentUser() user: any,
     @Body() createUserDto: CreateUserDto,
@@ -66,6 +76,8 @@ export class UsersController {
   // Busca um usuário por ID
   @Get(':id')
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.EDITAR_USUARIO)
+  @UseGuards(PermissionGuard)
   findOne(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: any,
@@ -76,6 +88,8 @@ export class UsersController {
   // Remove um usuário (soft delete)
   @Delete(':id')
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @RequirePermission(PermissionKey.EXCLUIR_USUARIO)
+  @UseGuards(PermissionGuard)
   remove(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: any,

@@ -8,6 +8,9 @@ import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
+import { PermissionGuard } from '../permissions/permission.guard';
+import { RequirePermission } from '../permissions/decorators/require-permission.decorator';
+import { PermissionKey } from '../permissions/user-permission.entity';
 
 @UseGuards(AuthGuard('jwt'), SchoolAccessGuard, RolesGuard)
 @Controller('attendance')
@@ -45,9 +48,11 @@ export class AttendanceController {
     return this.attendanceService.findByStudent(studentId, user.schoolId);
   }
 
-  // Chamadas por turma e disciplina
+  // Chamadas por turma e disciplina — TEACHER bypassa o PermissionGuard (fase 1)
   @Get('class/:classId/subject/:subjectId')
   @Roles(UserRole.TEACHER, UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @RequirePermission(PermissionKey.VER_CHAMADAS_OUTRAS_TURMAS)
+  @UseGuards(PermissionGuard)
   findByClassAndSubject(
     @Param('classId', ParseIntPipe) classId: number,
     @Param('subjectId', ParseIntPipe) subjectId: number,
@@ -59,6 +64,8 @@ export class AttendanceController {
   // Relatório de frequência da turma
   @Get('class/:classId/report')
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @RequirePermission(PermissionKey.VER_CHAMADAS_OUTRAS_TURMAS)
+  @UseGuards(PermissionGuard)
   getClassReport(
     @Param('classId', ParseIntPipe) classId: number,
     @CurrentUser() user: any,

@@ -17,6 +17,9 @@ import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
+import { PermissionGuard } from '../permissions/permission.guard';
+import { RequirePermission } from '../permissions/decorators/require-permission.decorator';
+import { PermissionKey } from '../permissions/user-permission.entity';
 
 @UseGuards(AuthGuard('jwt'), SchoolAccessGuard, RolesGuard)
 @Controller('enrollments')
@@ -26,6 +29,8 @@ export class EnrollmentController {
   // Matricular aluno em uma turma — secretary, coordinator, director
   @Post()
   @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.MATRICULAR_ALUNO)
+  @UseGuards(PermissionGuard)
   enroll(@Body() dto: CreateEnrollmentDto, @CurrentUser() user: any) {
     return this.enrollmentService.enroll(dto.studentId, dto.classId, user.schoolId);
   }
@@ -50,6 +55,8 @@ export class EnrollmentController {
   // Transferir por studentId — secretary, coordinator, director
   @Post('transfer')
   @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.MATRICULAR_ALUNO)
+  @UseGuards(PermissionGuard)
   transferByStudent(
     @Body() dto: { studentId: number; newClassId: number },
     @CurrentUser() user: any,
@@ -60,6 +67,8 @@ export class EnrollmentController {
   // Transferir matrícula por enrollmentId — secretary, coordinator, director
   @Patch(':id/transfer/:newClassId')
   @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.MATRICULAR_ALUNO)
+  @UseGuards(PermissionGuard)
   transfer(
     @Param('id', ParseIntPipe) id: number,
     @Param('newClassId', ParseIntPipe) newClassId: number,
@@ -70,6 +79,8 @@ export class EnrollmentController {
   // Cancelar matrícula — secretary, coordinator, director
   @Delete(':id')
   @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.MATRICULAR_ALUNO)
+  @UseGuards(PermissionGuard)
   unenroll(@Param('id', ParseIntPipe) id: number) {
     return this.enrollmentService.unenroll(id);
   }

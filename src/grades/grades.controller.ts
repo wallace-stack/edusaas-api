@@ -7,6 +7,9 @@ import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
+import { PermissionGuard } from '../permissions/permission.guard';
+import { RequirePermission } from '../permissions/decorators/require-permission.decorator';
+import { PermissionKey } from '../permissions/user-permission.entity';
 
 @UseGuards(AuthGuard('jwt'), SchoolAccessGuard, RolesGuard)
 @Controller('grades')
@@ -16,6 +19,8 @@ export class GradesController {
   // Professor lança nota
   @Post()
   @Roles(UserRole.TEACHER, UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @RequirePermission(PermissionKey.EDITAR_NOTAS)
+  @UseGuards(PermissionGuard)
   create(@Body() dto: CreateGradeDto, @CurrentUser() user: any) {
     return this.gradesService.create(dto, user.schoolId);
   }
@@ -40,6 +45,8 @@ export class GradesController {
   // Lançamento em lote
   @Post('bulk')
   @Roles(UserRole.TEACHER, UserRole.COORDINATOR, UserRole.DIRECTOR)
+  @RequirePermission(PermissionKey.EDITAR_NOTAS)
+  @UseGuards(PermissionGuard)
   bulkCreate(@Body() grades: CreateGradeDto[], @CurrentUser() user: any) {
     return this.gradesService.bulkCreate(grades, user.schoolId);
   }

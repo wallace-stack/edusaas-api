@@ -8,6 +8,9 @@ import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
+import { PermissionGuard } from '../permissions/permission.guard';
+import { RequirePermission } from '../permissions/decorators/require-permission.decorator';
+import { PermissionKey } from '../permissions/user-permission.entity';
 
 @UseGuards(AuthGuard('jwt'), SchoolAccessGuard, RolesGuard)
 @Controller('finance')
@@ -17,6 +20,8 @@ export class FinanceController {
   // Cria mensalidade
   @Post('tuitions')
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.LANCAR_FINANCEIRO)
+  @UseGuards(PermissionGuard)
   createTuition(@Body() dto: CreateTuitionDto, @CurrentUser() user: any) {
     return this.financeService.createTuition(dto, user.schoolId);
   }
@@ -24,6 +29,8 @@ export class FinanceController {
   // Registra pagamento
   @Patch('tuitions/:id/pay')
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.LANCAR_FINANCEIRO)
+  @UseGuards(PermissionGuard)
   payTuition(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: PayTuitionDto,
@@ -52,13 +59,17 @@ export class FinanceController {
   // Lista inadimplentes
   @Get('defaulters')
   @Roles(UserRole.COORDINATOR, UserRole.DIRECTOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.VER_RELATORIOS_FINANCEIROS)
+  @UseGuards(PermissionGuard)
   findDefaulters(@CurrentUser() user: any) {
     return this.financeService.findDefaulters(user.schoolId);
   }
 
-  // Lançamento no fluxo de caixa
+  // Lançamento no fluxo de caixa — SECRETARY expandida com guard
   @Post('cashflow')
-  @Roles(UserRole.DIRECTOR)
+  @Roles(UserRole.DIRECTOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.LANCAR_FINANCEIRO)
+  @UseGuards(PermissionGuard)
   createCashFlow(@Body() dto: CreateCashFlowDto, @CurrentUser() user: any) {
     return this.financeService.createCashFlow(dto, user.schoolId, user.userId);
   }
@@ -66,6 +77,8 @@ export class FinanceController {
   // Relatório financeiro mensal
   @Get('report')
   @Roles(UserRole.DIRECTOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.VER_RELATORIOS_FINANCEIROS)
+  @UseGuards(PermissionGuard)
   getReport(
     @Query('month') month: number,
     @Query('year') year: number,

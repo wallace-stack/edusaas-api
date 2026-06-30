@@ -7,6 +7,9 @@ import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
+import { PermissionGuard } from '../permissions/permission.guard';
+import { RequirePermission } from '../permissions/decorators/require-permission.decorator';
+import { PermissionKey } from '../permissions/user-permission.entity';
 
 @UseGuards(AuthGuard('jwt'), SchoolAccessGuard, RolesGuard)
 @Controller('metrics')
@@ -27,9 +30,11 @@ export class MetricsController {
     return this.metricsService.getCoordinatorDashboard(user.schoolId);
   }
 
-  // Dashboard financeiro do diretor
+  // Dashboard financeiro — SECRETARY expandida com guard
   @Get('director/financial')
-  @Roles(UserRole.DIRECTOR)
+  @Roles(UserRole.DIRECTOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.VER_RELATORIOS_FINANCEIROS)
+  @UseGuards(PermissionGuard)
   getFinancialDashboard(@CurrentUser() user: any) {
     return this.metricsService.getFinancialDashboard(user.schoolId);
   }
@@ -41,9 +46,11 @@ export class MetricsController {
     return this.metricsService.getTeacherDashboard(user.userId, user.schoolId);
   }
 
-  // Export CSV para contabilidade — Nome, Turma, Valor, Status, Dt.Vencimento, Dt.Pagamento
+  // Export CSV contabilidade — SECRETARY expandida com guard
   @Get('director/financial/export-contabilidade')
-  @Roles(UserRole.DIRECTOR)
+  @Roles(UserRole.DIRECTOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.VER_RELATORIOS_FINANCEIROS)
+  @UseGuards(PermissionGuard)
   async exportContabilidade(
     @CurrentUser() user: any,
     @Query('month') month: string,
@@ -59,9 +66,11 @@ export class MetricsController {
     res.send('﻿' + csv);
   }
 
-  // Export CSV relatório completo — todas as mensalidades + lançamentos de caixa do período
+  // Export CSV relatório completo — SECRETARY expandida com guard
   @Get('director/financial/export-completo')
-  @Roles(UserRole.DIRECTOR)
+  @Roles(UserRole.DIRECTOR, UserRole.SECRETARY)
+  @RequirePermission(PermissionKey.VER_RELATORIOS_FINANCEIROS)
+  @UseGuards(PermissionGuard)
   async exportCompleto(
     @CurrentUser() user: any,
     @Query('month') month: string,

@@ -56,7 +56,7 @@ DATABASE_URL:
 
 | Papel | Email | Senha |
 |-------|-------|-------|
-| Diretora | erikacarolinajunqueiradasilva@gmail.com | Horizonte@2026 |
+| Diretora | diretora@escolanovohorizonte.com.br | Horizonte@2026 |
 | Coordenadora | patricia.sousa@horizonte.com | Horizonte@2026 |
 | Secretaria | marcos.oliveira@horizonte.com | Horizonte@2026 |
 | Aluno | sophia.ferreira@aluno.horizonte.com | Aluno@2026 |
@@ -81,7 +81,7 @@ GET /seed/db-info?token=seed-horizonte-2026   # diagnóstico banco
 ---
 
 ## Estrutura Backend (src/)
-auth/          — JWT, login
+auth/          — JWT, login, login multi-escola (/login/select-school)
 users/         — entity User, CRUD
 schools/       — entity School, planos
 classes/       — Turmas + disciplinas
@@ -94,6 +94,57 @@ notifications/ — avisos institucionais (CRUD completo)
 feed/          — mural da escola
 seed/          — SeedController
 database/seeds/— demo.seed.ts (idempotente, batches de 50)
+database/migrations/ — fix-email-unique-multitenancy.ts (rodar 1x via npm run db:migrate)
+
+---
+
+## Multi-Tenancy — Email por Escola
+
+A unicidade de e-mail é **composta**: `UNIQUE(email, schoolId)`.
+O mesmo e-mail pode existir em escolas diferentes (ex: professor que trabalha em duas escolas).
+
+### Constraint no banco
+```sql
+-- Nome fixo: UQ_user_email_schoolId (criada pela migration, reconhecida pela entity)
+UNIQUE (email, "schoolId")
+```
+
+### Entity (user.entity.ts)
+```ts
+@Entity()
+@Unique('UQ_user_email_schoolId', ['email', 'schoolId'])
+export class User { ... }
+// email não tem mais unique: true no @Column
+```
+
+### Fluxo de Login
+```
+POST /auth/login  { email, password }
+  ├─ 1 escola com senha correta  → { access_token, user }
+  ├─ 2+ escolas, 1 bate senha   → { access_token, user }  (loga direto)
+  └─ 2+ escolas, 2+ batem senha → { requiresSchoolSelection: true, schools: [...] }
+                                           │
+                                           ▼
+                                 POST /auth/login/select-school
+                                 { email, password, schoolId }
+                                           └─ { access_token, user }
+```
+
+### Métodos chave em UsersService
+- `findByEmailAndSchool(email, schoolId)` — busca dentro de uma escola (uso principal)
+- `findAllByEmail(email)` — retorna todos os vínculos (login + forgotPassword)
+- `findByEmail(email)` — **@deprecated**, mantido apenas por compatibilidade
+
+### Forgot Password multi-escola
+- Um token de reset por vínculo (userId), não por e-mail global
+- Envia um e-mail separado por escola com link identificado: "Resetar senha do Colégio X"
+- O token já carrega o contexto do usuário correto — reset flow inalterado
+
+### Como rodar a migration (1x no banco)
+```bash
+npm run db:migrate   # verifica duplicatas, dropa UNIQUE(email), cria UNIQUE(email,schoolId)
+# rodar ANTES de reiniciar a API com as novas entities
+```
 
 ---
 
@@ -108,6 +159,7 @@ database/seeds/— demo.seed.ts (idempotente, batches de 50)
 | `statement timeout` | Muitos inserts na mesma transação | Usar batches de 50 via QueryBuilder |
 | FK violation ao deletar user | Dependências em outras tabelas | Deletar `notification`, `feed_posts` antes |
 | `Nenhum aluno encontrado` | Raw SQL com sintaxe MySQL | Corrigir `?` → `$1` e aspas em camelCase |
+| `Este e-mail já está cadastrado` | Constraint composta (email, schoolId) | Esperado — mesmo email já existe NESSA escola |
 
 ---
 
@@ -119,3 +171,4 @@ database/seeds/— demo.seed.ts (idempotente, batches de 50)
 - [ ] Entities com `timestamp` (não `datetime`)
 - [ ] `extra: { family: 4 }` no TypeOrmModule
 - [ ] `npm run build` passa sem erros
+- [ ] Buscas de usuário por e-mail usam `findByEmailAndSchool` ou `findAllByEmail` (nunca `findByEmail` em código novo)

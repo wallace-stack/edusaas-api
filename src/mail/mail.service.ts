@@ -232,17 +232,34 @@ export class MailService {
     }
   }
 
-  async sendPasswordReset(email: string, name: string, resetToken: string) {
+  /**
+   * Envia e-mail de redefinição de senha.
+   * @param schoolName - quando informado, exibe "Resetar senha do [Escola]" no e-mail.
+   *                     Útil para o cenário multi-escola onde o usuário recebe um
+   *                     e-mail separado por vínculo.
+   */
+  async sendPasswordReset(email: string, name: string, resetToken: string, schoolName?: string) {
     const firstName = name.split(' ')[0];
     const resetUrl = `https://edusaas-web-xi.vercel.app/nova-senha?token=${resetToken}`;
+
+    const schoolLine = schoolName
+      ? `<p style="color:#64748b;font-size:14px;margin:0 0 20px;">🏫 Este link é para a conta vinculada a <strong style="color:#1E3A5F;">${schoolName}</strong>.</p>`
+      : '';
+
     const content = `
       <h1 style="color:#1E3A5F;font-size:24px;font-weight:700;margin:0 0 8px;">Redefinição de senha 🔑</h1>
-      <p style="color:#64748b;font-size:15px;margin:0 0 24px;">Olá, <strong>${firstName}</strong>! Clique no botão abaixo para criar uma nova senha. Este link expira em <strong>1 hora</strong>.</p>
+      <p style="color:#64748b;font-size:15px;margin:0 0 16px;">Olá, <strong>${firstName}</strong>! Clique no botão abaixo para criar uma nova senha. Este link expira em <strong>1 hora</strong>.</p>
+      ${schoolLine}
       ${this.btnPrimary(resetUrl, 'Redefinir minha senha →')}
       <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:12px;padding:14px 20px;margin-top:24px;">
         <p style="margin:0;font-size:13px;color:#991b1b;">🔒 Se não solicitou a redefinição, ignore este e-mail.</p>
       </div>
     `;
+
+    const subject = schoolName
+      ? `🔑 Redefinição de senha — ${schoolName} · Walladm`
+      : `🔑 Redefinição de senha — Walladm`;
+
     try {
       if (!this.resend) {
         this.logger.warn('[Mail] E-mail não enviado — Resend não configurado');
@@ -251,10 +268,10 @@ export class MailService {
       await this.resend.emails.send({
         from: this.from,
         to: email,
-        subject: `🔑 Redefinição de senha — Walladm`,
+        subject,
         html: this.baseTemplate('Redefinição de senha', content),
       });
-      this.logger.log(`[Mail] Reset de senha enviado para ${email}`);
+      this.logger.log(`[Mail] Reset de senha enviado para ${email}${schoolName ? ` (${schoolName})` : ''}`);
     } catch (error) {
       this.logger.error(`[Mail] Erro reset senha para ${email}:`, error);
     }

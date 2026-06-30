@@ -19,7 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed:demo": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts",
-    "db:sync": "ts-node -r tsconfig-paths/register src/database/migrations/run-sync.ts"
+    "db:sync": "ts-node -r tsconfig-paths/register src/database/migrations/run-sync.ts",
+    "db:migrate": "ts-node -r tsconfig-paths/register src/database/migrations/fix-email-unique-multitenancy.ts"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",

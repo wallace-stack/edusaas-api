@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Unique } from 'typeorm';
 import { School } from '../schools/school.entity';
 
 export enum UserRole {
@@ -9,7 +9,10 @@ export enum UserRole {
   STUDENT = 'student',
 }
 
+// Multi-tenancy: unicidade por (email, schoolId) — o mesmo e-mail pode
+// existir em escolas diferentes. O nome fixo bate com a migration manual.
 @Entity()
+@Unique('UQ_user_email_schoolId', ['email', 'schoolId'])
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
@@ -17,7 +20,7 @@ export class User {
   @Column()
   name: string;
 
-  @Column({ unique: true })
+  @Column()   // unique: true removido — unicidade agora é composta com schoolId
   email: string;
 
   @Column()
@@ -79,7 +82,7 @@ export class User {
   resetTokenExpiry: Date;
 
   @ManyToOne(() => School, { eager: false })
-  @JoinColumn({ name: 'school_id' })
+  @JoinColumn({ name: 'schoolId' })
   school: School;
 
   @Column()

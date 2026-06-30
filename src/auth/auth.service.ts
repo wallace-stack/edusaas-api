@@ -1,7 +1,6 @@
 import {
   Injectable,
   UnauthorizedException,
-  ConflictException,
   BadRequestException,
   Logger,
 } from '@nestjs/common';
@@ -10,6 +9,7 @@ import { UsersService } from '../users/users.service';
 import { SchoolsService } from '../schools/schools.service';
 import { AsaasService } from '../asaas/asaas.service';
 import { LoginDto } from './dto/login.dto';
+import { SelectSchoolLoginDto } from './dto/select-school-login.dto';
 import { RegisterSchoolDto } from './dto/register-school.dto';
 import { UserRole } from '../users/user.entity';
 import { SchoolPlan } from '../plans/plan-limits';
@@ -43,14 +43,9 @@ export class AuthService {
       }
     }
 
-    // Bloqueia e-mail do diretor já cadastrado
-    const emailExistente = await this.usersService.findByEmail(dto.directorEmail);
-    if (emailExistente) {
-      throw new BadRequestException({
-        code: 'EMAIL_ALREADY_USED',
-        message: 'Este e-mail já está cadastrado no sistema.',
-      });
-    }
+    // Nota: com multi-tenancy, o mesmo e-mail pode ser diretor em escolas diferentes.
+    // Não bloqueamos globalmente — a constraint composta (email, schoolId) no banco
+    // garante unicidade dentro da escola recém-criada. Nenhuma checagem prévia necessária.
 
     const school = await this.schoolsService.create({
       name: dto.schoolName,
@@ -99,44 +94,101 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.usersService.findByEmail(loginDto.email);
     const dummyHash = '$2b$10$invalidhashforcomparison000000000000000000000000000';
+
+    const users = await this.usersService.findAllByEmail(loginDto.email);
+
+    // Nenhum usuário com esse e-mail em nenhuma escola
+    if (users.length === 0) {
+      await bcrypt.compare(loginDto.password, dummyHash); // timing-safe
+      throw new UnauthorizedException('Credenciais inválidas.');
+    }
+
+    // Testa a senha em todos os vínculos encontrados
+    const matchedUsers = (
+      await Promise.all(
+        users.map(async (u) => {
+          const ok = await bcrypt.compare(loginDto.password, u.password);
+          return ok ? u : null;
+        }),
+      )
+    ).filter((u): u is NonNullable<typeof u> => u !== null);
+
+    if (matchedUsers.length === 0) {
+      throw new UnauthorizedException('Credenciais inválidas.');
+    }
+
+    // Usuário inativo em TODOS os vínculos com senha correta
+    const activeMatches = matchedUsers.filter((u) => u.isActive);
+    if (activeMatches.length === 0) {
+      throw new UnauthorizedException('Usuário inativo.');
+    }
+
+    // Senha bate em exatamente 1 escola → loga direto
+    if (activeMatches.length === 1) {
+      const user = activeMatches[0];
+      return {
+        access_token: this.generateToken(user, user.schoolId),
+        user: { id: user.id, name: user.name, email: user.email, role: user.role, schoolId: user.schoolId },
+      };
+    }
+
+    // Senha bate em 2+ escolas → frontend deve exibir seletor de escola
+    return {
+      requiresSchoolSelection: true,
+      schools: activeMatches.map((u) => ({
+        id: u.schoolId,
+        name: u.school?.name ?? `Escola #${u.schoolId}`,
+      })),
+    };
+  }
+
+  /**
+   * Segunda etapa do login multi-escola.
+   * Recebe email + password + schoolId escolhido e retorna o token.
+   */
+  async loginSelectSchool(dto: SelectSchoolLoginDto) {
+    const dummyHash = '$2b$10$invalidhashforcomparison000000000000000000000000000';
+    const user = await this.usersService.findByEmailAndSchool(dto.email, dto.schoolId);
+
     const passwordMatch = user
-      ? await bcrypt.compare(loginDto.password, user.password)
-      : await bcrypt.compare(loginDto.password, dummyHash);
+      ? await bcrypt.compare(dto.password, user.password)
+      : await bcrypt.compare(dto.password, dummyHash);
 
     if (!user || !passwordMatch) throw new UnauthorizedException('Credenciais inválidas.');
     if (!user.isActive) throw new UnauthorizedException('Usuário inativo.');
 
-    const token = this.generateToken(user, user.schoolId);
     return {
-      access_token: token,
+      access_token: this.generateToken(user, user.schoolId),
       user: { id: user.id, name: user.name, email: user.email, role: user.role, schoolId: user.schoolId },
     };
   }
 
-  // Solicita recuperação de senha — gera token e envia e-mail
+  // Solicita recuperação de senha — gera token(s) e envia e-mail(s) por escola
   async forgotPassword(email: string) {
-    const user = await this.usersService.findByEmail(email);
+    const successMsg = { message: 'Se este e-mail estiver cadastrado, você receberá as instruções em breve.' };
 
-    // Sempre retorna sucesso para não revelar se o e-mail existe
-    if (!user) {
-      return { message: 'Se este e-mail estiver cadastrado, você receberá as instruções em breve.' };
+    const users = await this.usersService.findAllByEmail(email);
+
+    // Sempre retorna a mesma mensagem para não revelar se o e-mail existe
+    if (users.length === 0) return successMsg;
+
+    // Gera um token independente por vínculo (escola) e envia um e-mail por escola
+    for (const user of users) {
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hora por vínculo
+
+      await this.usersService.setResetToken(user.id, resetToken, resetTokenExpiry);
+
+      const schoolName = user.school?.name;
+      try {
+        await this.mailService.sendPasswordReset(user.email, user.name, resetToken, schoolName);
+      } catch (e) {
+        console.error('[Mail] Erro reset senha:', e);
+      }
     }
 
-    // Gera token seguro de 32 bytes
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
-
-    await this.usersService.setResetToken(user.id, resetToken, resetTokenExpiry);
-
-    try {
-      await this.mailService.sendPasswordReset(user.email, user.name, resetToken);
-    } catch (e) {
-      console.error('[Mail] Erro reset senha:', e);
-    }
-
-    return { message: 'Se este e-mail estiver cadastrado, você receberá as instruções em breve.' };
+    return successMsg;
   }
 
   // Redefine a senha usando o token recebido por e-mail

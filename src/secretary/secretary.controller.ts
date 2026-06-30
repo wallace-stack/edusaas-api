@@ -24,6 +24,9 @@ import { SchoolAccessGuard } from '../common/guards/school-access.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../users/user.entity';
+import { PermissionGuard } from '../permissions/permission.guard';
+import { RequirePermission } from '../permissions/decorators/require-permission.decorator';
+import { PermissionKey } from '../permissions/user-permission.entity';
 
 @UseGuards(AuthGuard('jwt'), SchoolAccessGuard, RolesGuard)
 @Roles(UserRole.DIRECTOR, UserRole.COORDINATOR, UserRole.SECRETARY)
@@ -112,6 +115,8 @@ export class SecretaryController {
 
   // Relatório financeiro completo
   @Get('financial')
+  @RequirePermission(PermissionKey.VER_RELATORIOS_FINANCEIROS)
+  @UseGuards(PermissionGuard)
   getFinancialReport(
     @CurrentUser() user: any,
     @Query('month') month?: number,
@@ -122,6 +127,8 @@ export class SecretaryController {
 
   // Resumo financeiro com dados para gráficos
   @Get('financial/summary')
+  @RequirePermission(PermissionKey.VER_RELATORIOS_FINANCEIROS)
+  @UseGuards(PermissionGuard)
   getFinancialSummary(
     @CurrentUser() user: any,
     @Query('month') month: string,
@@ -134,6 +141,8 @@ export class SecretaryController {
 
   // Mensalidades com filtros
   @Get('financial/tuitions')
+  @RequirePermission(PermissionKey.VER_RELATORIOS_FINANCEIROS)
+  @UseGuards(PermissionGuard)
   getAllTuitions(
     @CurrentUser() user: any,
     @Query('month') month: string,
@@ -151,12 +160,16 @@ export class SecretaryController {
 
   // Notificar inadimplentes por e-mail
   @Post('financial/notify-overdue')
+  @RequirePermission(PermissionKey.LANCAR_FINANCEIRO)
+  @UseGuards(PermissionGuard)
   notifyOverdue(@CurrentUser() user: any) {
     return this.secretaryService.notifyOverdue(user.schoolId);
   }
 
   // Exportar relatório fiscal CSV
   @Get('financial/export-fiscal')
+  @RequirePermission(PermissionKey.VER_RELATORIOS_FINANCEIROS)
+  @UseGuards(PermissionGuard)
   async exportFiscal(
     @CurrentUser() user: any,
     @Query('month') month: string,
@@ -180,18 +193,24 @@ export class SecretaryController {
 
   // Mensalidades pendentes/vencidas para o modal de pagamento
   @Get('financial/pending')
+  @RequirePermission(PermissionKey.VER_RELATORIOS_FINANCEIROS)
+  @UseGuards(PermissionGuard)
   getPendingTuitions(@CurrentUser() user: any) {
     return this.secretaryService.getPendingTuitions(user.schoolId);
   }
 
   // Lançar mensalidade
   @Post('financial/tuition')
+  @RequirePermission(PermissionKey.LANCAR_FINANCEIRO)
+  @UseGuards(PermissionGuard)
   createTuition(@Body() dto: SecretaryCreateTuitionDto, @CurrentUser() user: any) {
     return this.secretaryService.createTuition(dto, user.schoolId);
   }
 
   // Registrar pagamento
   @Post('financial/payment')
+  @RequirePermission(PermissionKey.LANCAR_FINANCEIRO)
+  @UseGuards(PermissionGuard)
   payTuition(@Body() dto: SecretaryPayTuitionDto, @CurrentUser() user: any) {
     return this.secretaryService.payTuition(dto, user.schoolId);
   }
